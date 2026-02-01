@@ -1,78 +1,57 @@
-// File: Core/Constraints/Builder.cs
-
-using System;
+using SmartVestFinancialAdvisor.Core.Scoring;
 
 namespace SmartVestFinancialAdvisor.Core.Constraints
 {
     public class Builder
     {
-        // Method to calculate financial score from a profile
-        public FinancialScore CalculateScore(FinancialProfile profile)
+        private readonly ScoreCalculator _scoreCalculator;
+
+        public Builder()
         {
-            // Create a new FinancialScore object
-            var score = new FinancialScore();
-
-            // Example logic: score out of 100 based on age and income
-            // 50% weight for income, 50% weight for savings
-            decimal incomeScore = Math.Min(profile.AnnualIncome / 1000, 50);  // cap at 50
-            decimal savingsScore = Math.Min(profile.CurrentSavings / 1000, 50); // cap at 50
-
-            score.ScoreValue = (int)(incomeScore + savingsScore);
-
-            // Adjust score based on risk tolerance
-            switch (profile.RiskTolerance)
-            {
-                case "High":
-                    score.RiskAdjustedScore = score.ScoreValue * 1.1m;  // +10%
-                    break;
-                case "Low":
-                    score.RiskAdjustedScore = score.ScoreValue * 0.9m;  // -10%
-                    break;
-                default:
-                    score.RiskAdjustedScore = score.ScoreValue;         // Medium: no change
-                    break;
-            }
-
-            return score;
+            _scoreCalculator = new ScoreCalculator();
         }
 
-        // Method to generate portfolio constraints from profile
-        public PortfolioConstraints GenerateConstraints(FinancialProfile profile)
+        public BuildResult Build(FinancialProfile profile)
         {
-            var constraints = new PortfolioConstraints
+            // 1. Convert FinancialProfile to ClientProfile
+            var client = new ClientProfile
             {
-                RiskTolerance = profile.RiskTolerance
+                MonthlyIncome = profile.MonthlyIncome,
+                Savings = profile.Savings,
+                MonthlyDebt = profile.MonthlyDebt
             };
 
-            // Example logic: adjust allocations based on risk
-            switch (profile.RiskTolerance)
+            // 2. Calculate financial score
+            FinancialScore score = _scoreCalculator.AggregateScore(client);
+
+            // 3. Determine client category
+            ClientCategory category = Categories.DetermineCategory(score);
+
+            // 4. Get category definition
+            var definition = Categories.GetCategoryDefinition(category);
+
+            // 5. Build portfolio constraints
+            var constraints = new PortfolioConstraints
             {
-                case "High":
-                    constraints.MaxStockAllocation = 0.8m;
-                    constraints.MaxBondAllocation = 0.15m;
-                    constraints.MaxCashAllocation = 0.05m;
-                    break;
-                case "Low":
-                    constraints.MaxStockAllocation = 0.3m;
-                    constraints.MaxBondAllocation = 0.5m;
-                    constraints.MaxCashAllocation = 0.2m;
-                    break;
-                default: // Medium
-                    constraints.MaxStockAllocation = 0.6m;
-                    constraints.MaxBondAllocation = 0.3m;
-                    constraints.MaxCashAllocation = 0.1m;
-                    break;
-            }
+                RiskTolerance = profile.RiskTolerance,
+                MaxStockAllocation = definition.DefaultStockAllocation,
+                MaxBondAllocation = definition.DefaultBondAllocation,
+                MaxCashAllocation = definition.DefaultCashAllocation
+            };
 
-            return constraints;
+            return new BuildResult
+            {
+                Score = score,
+                Category = category,
+                Constraints = constraints
+            };
         }
+    }
 
-        // Optional: method to run both steps together
-        public (FinancialScore score, PortfolioConstraints constraints) Build(FinancialProfile profile)
-        {
-            var score = CalculateScore(profile);
-            var constraints = GenerateConstraints(profile);
-            return (score, constraints);
-        }
+    public class BuildResult
+    {
+        public FinancialScore Score { get; set; }
+        public ClientCategory Category { get; set; }
+        public PortfolioConstraints Constraints { get; set; }
     }
 }
