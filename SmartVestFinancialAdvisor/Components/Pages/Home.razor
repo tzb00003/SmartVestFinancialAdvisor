@@ -1,7 +1,73 @@
-﻿@page "/"
+﻿@page "/home"
+@using MudBlazor
 
 <PageTitle>Home</PageTitle>
+<MudGrid Spacing="3">
+    <MudItem xs="12">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h4" GutterBottom="true">Welcome to SmartVest Financial Advisor</MudText>
+            <MudText Typo="Typo.body1">
+                This application is designed to help you manage your finances effectively and make informed investment decisions.
+            </MudText>
+        </MudPaper>
+    </MudItem>
 
-<h1>Hello, world!</h1>
+    <!-- Top summary fields -->
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6">Account Balance</MudText>
+            <MudTextField T="string" Label="Current Balance" Value="amount" Disabled="true" Class="mt-2" />
+        </MudPaper>
+    </MudItem>
 
-Welcome to your new app.
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6">Monthly Budget</MudText>
+            <MudTextField T="string" Label="Budget Remaining" Value="amount" Disabled="true" Class="mt-2" />
+        </MudPaper>
+    </MudItem>
+
+    <!-- Middle row with three quick panels -->
+    <MudItem xs="12" md="4">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6">Investments</MudText>
+            <MudTextField T="string" Label="Top Holdings" Value="amount" Disabled="true" Lines="3" />
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="4">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6">Financial Goals</MudText>
+            <MudTextField T="string" Label="Active Goals" Value="amount" Disabled="true" Lines="3" />
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="4">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6">Recent Transactions</MudText>
+
+            @* <MudList Dense="true">
+                <MudListItem Disabled="true" Text="No recent transactions" />
+            </MudList> *@
+
+        </MudPaper>
+    </MudItem>
+
+    <!-- Full width quick actions -->
+    <MudItem xs="12">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6">Quick Actions</MudText>
+            <div class="d-flex mt-2" style="gap:12px;flex-wrap:wrap;">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="true">Add Transaction</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Disabled="true">Create Goal</MudButton>
+                <MudButton Variant="Variant.Text" Color="Color.Default" Disabled="true">View Reports</MudButton>
+            </div>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+@code
+{
+    String amount = "10.00";
+
+
+}
