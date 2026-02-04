@@ -1,5 +1,5 @@
 ﻿@inherits LayoutComponentBase
-
+@using MudBlazor
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -14,6 +14,16 @@
             @Body
         </article>
     </main>
+
+        @* Required *@
+        <MudThemeProvider />
+        <MudPopoverProvider />
+
+        @* Needed for dialogs *@
+        <MudDialogProvider />
+
+        @* Needed for snackbars *@
+        <MudSnackbarProvider />
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
@@ -21,3 +31,4 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
