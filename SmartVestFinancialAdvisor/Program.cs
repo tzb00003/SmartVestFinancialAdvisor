@@ -1,11 +1,14 @@
 /* using MudBlazor.Services;
 using SmartVestFinancialAdvisor.Components;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+// Register MudBlazor services (required for MudBlazor components like MudTextField)
+builder.Services.AddMudServices();
 
 builder.Services.AddMudServices();
 
