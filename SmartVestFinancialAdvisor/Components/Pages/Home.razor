@@ -1,11 +1,14 @@
-﻿@page "/home"
+﻿@page "/"
+@page "/home"
 @using MudBlazor
+@using System.Collections.Generic
+@using System.Linq
 
 <PageTitle>Home</PageTitle>
 <MudGrid Spacing="3">
     <MudItem xs="12">
         <MudPaper Class="pa-4">
-            <MudText Typo="Typo.h4" GutterBottom="true">Welcome to SmartVest Financial Advisor</MudText>
+            <MudText Typo="Typo.h2" GutterBottom="true" Color="Color.Dark">Welcome to SmartVest Financial Advisor</MudText>
             <MudText Typo="Typo.body1">
                 This application is designed to help you manage your finances effectively and make informed investment decisions.
             </MudText>
@@ -14,53 +17,28 @@
 
     <!-- Top summary fields -->
     <MudItem xs="12" md="6">
-        <MudPaper Class="pa-4">
-            <MudText Typo="Typo.h6">Account Balance</MudText>
-            <MudTextField T="string" Label="Current Balance" Value="amount" Disabled="true" Class="mt-2" />
+        <MudPaper Class="pa-4" Style="background-color: #f2f2f2;">
+            <MudText Typo="Typo.h6">Financial Portfolio</MudText>
+            <MudDataGrid Items="@Suggestions.Take(4)" Class="grid-with-borders">
+                <Columns>
+                    <PropertyColumn Property="x => x.type" Title="Investment Type" />
+                    <PropertyColumn Property="x => x.risk" Title="Risk Level"/>
+                    <PropertyColumn Property="x => x.rec" Title="Recommendation Level"/>
+                    <PropertyColumn Property="x => x.info" Title="More Information"/>
+                </Columns>
+            </MudDataGrid>
         </MudPaper>
     </MudItem>
 
-    <MudItem xs="12" md="6">
-        <MudPaper Class="pa-4">
-            <MudText Typo="Typo.h6">Monthly Budget</MudText>
-            <MudTextField T="string" Label="Budget Remaining" Value="amount" Disabled="true" Class="mt-2" />
-        </MudPaper>
-    </MudItem>
-
-    <!-- Middle row with three quick panels -->
-    <MudItem xs="12" md="4">
-        <MudPaper Class="pa-4">
-            <MudText Typo="Typo.h6">Investments</MudText>
-            <MudTextField T="string" Label="Top Holdings" Value="amount" Disabled="true" Lines="3" />
-        </MudPaper>
-    </MudItem>
-
-    <MudItem xs="12" md="4">
-        <MudPaper Class="pa-4">
-            <MudText Typo="Typo.h6">Financial Goals</MudText>
-            <MudTextField T="string" Label="Active Goals" Value="amount" Disabled="true" Lines="3" />
-        </MudPaper>
-    </MudItem>
-
-    <MudItem xs="12" md="4">
-        <MudPaper Class="pa-4">
-            <MudText Typo="Typo.h6">Recent Transactions</MudText>
-
-            @* <MudList Dense="true">
-                <MudListItem Disabled="true" Text="No recent transactions" />
-            </MudList> *@
-
-        </MudPaper>
-    </MudItem>
 
     <!-- Full width quick actions -->
     <MudItem xs="12">
         <MudPaper Class="pa-4">
             <MudText Typo="Typo.h6">Quick Actions</MudText>
             <div class="d-flex mt-2" style="gap:12px;flex-wrap:wrap;">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="true">Add Transaction</MudButton>
-                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Disabled="true">Create Goal</MudButton>
-                <MudButton Variant="Variant.Text" Color="Color.Default" Disabled="true">View Reports</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="false">Take Financial Survey</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="false">Financial Resources</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" Disabled="false">Help</MudButton>
             </div>
         </MudPaper>
     </MudItem>
@@ -69,5 +47,86 @@
 {
     String amount = "10.00";
 
+    public class SuggestionItem
+    {
+        public string type { get; set; } = string.Empty;
+        public string risk { get; set; } = string.Empty;
+        public string rec { get; set; } = string.Empty;
+        public string info { get; set; } = string.Empty;
+    }
 
+
+}
+
+
+@code {
+    // Simple POCO to match your DataGrid columns (lowercase properties)
+  
+
+    // Backing list for the grid
+    public List<SuggestionItem> Suggestions { get; set; } = new();
+
+    protected override void OnInitialized()
+    {
+        // Artificial/filler data
+        Suggestions = new List<SuggestionItem>
+        {
+            new SuggestionItem
+            {
+                type = "Index Fund (S&P 500)",
+                risk = "Moderate",
+                rec  = "6/10",
+                info = "Low cost broad-market exposure; suitable for long-term growth."
+            },
+            new SuggestionItem
+            {
+                type = "Corporate Bonds (A- Rated)",
+                risk = "Low",
+                rec  = "9/10",
+                info = "Link place holder"
+            },
+            new SuggestionItem
+            {
+                type = "Emerging Markets ETF",
+                risk = "High",
+                rec  = "1/10",
+                info = "Link place holder"
+            },
+            new SuggestionItem
+            {
+                type = "REIT (Diversified)",
+                risk = "Moderate",
+                rec  = "0/10",
+                info = "Link place holder"
+            },
+            new SuggestionItem
+            {
+                type = "Treasury Bills (3-Month)",
+                risk = "Very Low",
+                rec  = "7/10",
+                info = "Link place holder"
+            },
+            new SuggestionItem
+            {
+                type = "Tech Growth Stock",
+                risk = "High",
+                rec  = "2/10",
+                info = "Link place holder"
+            },
+            new SuggestionItem
+            {
+                type = "Capitol One Savings",
+                risk = "Low–Moderate",
+                rec  = "9/10",
+                info = "Link place holder"
+            },
+            new SuggestionItem
+            {
+                type = "Commodities Basket",
+                risk = "High",
+                rec  = "Neutral",
+                info = "Link place holder"
+            }
+        };
+    }
 }
