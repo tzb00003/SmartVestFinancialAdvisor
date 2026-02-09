@@ -1,8 +1,9 @@
 ﻿@inherits LayoutComponentBase
-
+@using MudBlazor
 <MudThemeProvider />
 <MudSnackbarProvider />
 <MudDialogProvider />
+<MudPopoverProvider />
 
 <MudLayout>
     <MudAppBar>
@@ -21,18 +22,21 @@
                 Header
             </MudText>
         </MudDrawerHeader>
-        <MudDrawerContainer>
-            <NavMenu />
-        </MudDrawerContainer>
+        <NavMenu />
     </MudDrawer>
     
     <MudMainContent>
-        @Body 
+        <article class="content px-4">
+            @Body 
+        </article>
     </MudMainContent>
-
-
-
 </MudLayout>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
 
 @code {
     bool _drawerOpen = false;
