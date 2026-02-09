@@ -1,11 +1,17 @@
 ﻿using SmartVestFinancialAdvisor.Core.Scoring;
 using SmartVestFinancialAdvisor.Core.Constraints;
+using SmartVestFinancialAdvisor.Core.Agents;
+using SmartVestFinancialAdvisor.Infrastructure.Census;
+using SmartVestFinancialAdvisor.Infrastructure.Benchmarks;
+using System.Threading.Tasks;
+using System;
+using System.IO;
 
 namespace SmartVestFinancialAdvisor
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             Console.WriteLine("=== SmartVestFinancialAdvisor Test ===\n");
 
@@ -14,7 +20,10 @@ namespace SmartVestFinancialAdvisor
             {
                 MonthlyIncome = 6000m,
                 Savings = 20000m,
-                MonthlyDebt = 1500m
+                MonthlyDebt = 1500m,
+                Age = 30,
+                LocationState = "NY",
+                Gender = null
             };
 
             // 2. Create a FinancialProfile for constraints builder
@@ -39,7 +48,7 @@ namespace SmartVestFinancialAdvisor
             Console.WriteLine($"\nTotal Score: {financialScore.Total}");
 
             // 4. Determine client category
-            ClientCategory category = Categories.DetermineCategory(financialScore);
+            ClientCategory category = Categories.DetermineCategory(financialScore, clientProfile);
             var categoryDefinition = Categories.GetCategoryDefinition(category);
 
             Console.WriteLine($"\nClient Category: {category}");
@@ -53,6 +62,53 @@ namespace SmartVestFinancialAdvisor
             Console.WriteLine($"Max Stock Allocation: {buildResult.Constraints.MaxStockAllocation}");
             Console.WriteLine($"Max Bond Allocation: {buildResult.Constraints.MaxBondAllocation}");
             Console.WriteLine($"Max Cash Allocation: {buildResult.Constraints.MaxCashAllocation}");
+
+            // 6. Test Benchmarks
+            Console.WriteLine("\n--- Benchmarks ---");
+            string dbPath = Path.Combine(Environment.CurrentDirectory, "benchmarks.db");
+            var benchmarkProvider = new SqliteBenchmarkProvider(dbPath);
+            var benchmark = await benchmarkProvider.GetIncomeBenchmarkAsync(clientProfile.Age, clientProfile.LocationState ?? "NY");
+
+            if (benchmark != null)
+            {
+                Console.WriteLine($"Found Benchmark for {clientProfile.LocationState}, Age {clientProfile.Age}: Median=${benchmark.MedianIncome}, Avg=${benchmark.AverageIncome}");
+                if (clientProfile.MonthlyIncome * 12 < benchmark.MedianIncome)
+                {
+                    Console.WriteLine("Client is below median income for their demographic.");
+                }
+                else
+                {
+                    Console.WriteLine("Client is above median income for their demographic.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("No benchmark found.");
+            }
+
+            // 7. Re-evaluate Category with Benchmark
+            Console.WriteLine("\n--- Benchmark-Adjusted Categorization ---");
+            // Original category was calculated without benchmark in step 4 (which we didn't update yet, let's update it here)
+            ClientCategory adjustedCategory = Categories.DetermineCategory(financialScore, clientProfile, benchmark);
+            var adjustedDefinition = Categories.GetCategoryDefinition(adjustedCategory);
+
+            Console.WriteLine($"Original Category: {category} (Rules: Stock={categoryDefinition.DefaultStockAllocation})");
+            Console.WriteLine($"Adjusted Category: {adjustedCategory} (Rules: Stock={adjustedDefinition.DefaultStockAllocation})");
+
+            if (category != adjustedCategory)
+            {
+                Console.WriteLine(">> Category matched due to benchmark comparison!");
+            }
+            else
+            {
+                Console.WriteLine(">> Category remained the same.");
+            }
+
+            // 8. Test Census Ingestion (Trigger Agent)
+            Console.WriteLine("\n--- Census Data Agent ---");
+            Console.WriteLine("Running ingestion (this calls the live Census API)...");
+            var censusAgent = new CensusIngestionAgent(dbPath, Environment.CurrentDirectory);
+            await censusAgent.RunIngestionAsync();
 
             Console.WriteLine("\n=== Test Complete ===");
         }

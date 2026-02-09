@@ -25,7 +25,7 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
             FinancialScore score = _scoreCalculator.AggregateScore(client);
 
             // 3. Determine client category
-            ClientCategory category = Categories.DetermineCategory(score);
+            ClientCategory category = Categories.DetermineCategory(score, client);
 
             // 4. Get category definition
             var definition = Categories.GetCategoryDefinition(category);
