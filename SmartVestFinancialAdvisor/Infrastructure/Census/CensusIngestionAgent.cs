@@ -68,7 +68,7 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Census
             }
 
             // 3. Normalization & Persistence
-            var benchmarks = ParseCensusResponse(jsonResponse);
+            var benchmarks = ParseCensusResponse(jsonResponse, year);
 
             Console.WriteLine($"[CensusAgent] Extracted {benchmarks.Count} benchmark records.");
 
@@ -86,7 +86,7 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Census
             Console.WriteLine("[CensusAgent] Ingestion complete and cited.");
         }
 
-        private List<IncomeBenchmark> ParseCensusResponse(string json)
+        private List<IncomeBenchmark> ParseCensusResponse(string json, int year)
         {
             // Census API returns [[header1, header2...], [val1, val2...], ...]
             var benchmarks = new List<IncomeBenchmark>();
@@ -149,7 +149,9 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Census
                             stateCode, // Confirmed non-null above
                             income,
                             income, // Using Median for Average too as generic fallback since table provides Median
-                            null // Gender null for this table
+                            null, // Gender null for this table
+                            "Census",
+                            year
                         ));
                     }
                 }

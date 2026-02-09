@@ -63,9 +63,16 @@ namespace SmartVestFinancialAdvisor
             Console.WriteLine($"Max Bond Allocation: {buildResult.Constraints.MaxBondAllocation}");
             Console.WriteLine($"Max Cash Allocation: {buildResult.Constraints.MaxCashAllocation}");
 
-            // 6. Test Benchmarks
-            Console.WriteLine("\n--- Benchmarks ---");
+            // 6. Census Ingestion (Trigger Agent first)
+            Console.WriteLine("\n--- Census Data Agent ---");
+            Console.WriteLine("Running ingestion (this calls the live Census API)...");
             string dbPath = Path.Combine(Environment.CurrentDirectory, "benchmarks.db");
+            Console.WriteLine($"DB path: {dbPath}");
+            var censusAgent = new CensusIngestionAgent(dbPath, Environment.CurrentDirectory);
+            await censusAgent.RunIngestionAsync();
+
+            // 7. Test Benchmarks (after ingestion)
+            Console.WriteLine("\n--- Benchmarks ---");
             var benchmarkProvider = new SqliteBenchmarkProvider(dbPath);
             var benchmark = await benchmarkProvider.GetIncomeBenchmarkAsync(clientProfile.Age, clientProfile.LocationState ?? "NY");
 
@@ -86,7 +93,7 @@ namespace SmartVestFinancialAdvisor
                 Console.WriteLine("No benchmark found.");
             }
 
-            // 7. Re-evaluate Category with Benchmark
+            // 8. Re-evaluate Category with Benchmark
             Console.WriteLine("\n--- Benchmark-Adjusted Categorization ---");
             // Original category was calculated without benchmark in step 4 (which we didn't update yet, let's update it here)
             ClientCategory adjustedCategory = Categories.DetermineCategory(financialScore, clientProfile, benchmark);
@@ -103,12 +110,6 @@ namespace SmartVestFinancialAdvisor
             {
                 Console.WriteLine(">> Category remained the same.");
             }
-
-            // 8. Test Census Ingestion (Trigger Agent)
-            Console.WriteLine("\n--- Census Data Agent ---");
-            Console.WriteLine("Running ingestion (this calls the live Census API)...");
-            var censusAgent = new CensusIngestionAgent(dbPath, Environment.CurrentDirectory);
-            await censusAgent.RunIngestionAsync();
 
             Console.WriteLine("\n=== Test Complete ===");
         }

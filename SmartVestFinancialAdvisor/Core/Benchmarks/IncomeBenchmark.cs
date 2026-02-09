@@ -17,6 +17,8 @@ namespace SmartVestFinancialAdvisor.Core.Benchmarks
         string State,
         decimal MedianIncome,
         decimal AverageIncome,
-        Gender? Gender = null
+        Gender? Gender = null,
+        string Source = "Seed",
+        int Year = 0
     );
 }

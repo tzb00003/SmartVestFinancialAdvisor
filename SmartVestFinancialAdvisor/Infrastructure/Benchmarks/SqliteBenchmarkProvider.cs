@@ -20,10 +20,14 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
 
         private void InitializeDatabase(string dbPath)
         {
-            if (File.Exists(dbPath)) return;
-
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
+
+            if (File.Exists(dbPath))
+            {
+                EnsureSchema(connection);
+                return;
+            }
 
             var command = connection.CreateCommand();
             command.CommandText = @"
@@ -41,19 +45,64 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
                     AgeMax INTEGER NOT NULL,
                     Gender TEXT,
                     MedianIncome DECIMAL NOT NULL,
-                    AverageIncome DECIMAL NOT NULL
+                    AverageIncome DECIMAL NOT NULL,
+                    Source TEXT NOT NULL,
+                    Year INTEGER NOT NULL
                 );
 
+                CREATE UNIQUE INDEX IF NOT EXISTS IX_IncomeBenchmarks_Unique
+                    ON IncomeBenchmarks (State, AgeMin, AgeMax, Gender, Source, Year);
+
                 -- Seed Data
-                INSERT INTO IncomeBenchmarks (State, AgeMin, AgeMax, Gender, MedianIncome, AverageIncome) VALUES 
-                ('NY', 25, 34, NULL, 65000, 78000),
-                ('NY', 35, 44, NULL, 85000, 95000),
-                ('NY', 25, 34, 'Male', 70000, 82000),
-                ('NY', 25, 34, 'Female', 68000, 80000),
-                ('CA', 25, 34, NULL, 70000, 85000),
-                ('TX', 25, 34, NULL, 55000, 65000);
+                INSERT INTO IncomeBenchmarks (State, AgeMin, AgeMax, Gender, MedianIncome, AverageIncome, Source, Year) VALUES 
+                ('NY', 25, 34, NULL, 65000, 78000, 'Seed', 0),
+                ('NY', 35, 44, NULL, 85000, 95000, 'Seed', 0),
+                ('NY', 25, 34, 'Male', 70000, 82000, 'Seed', 0),
+                ('NY', 25, 34, 'Female', 68000, 80000, 'Seed', 0),
+                ('CA', 25, 34, NULL, 70000, 85000, 'Seed', 0),
+                ('TX', 25, 34, NULL, 55000, 65000, 'Seed', 0);
             ";
             command.ExecuteNonQuery();
+        }
+
+        private void EnsureSchema(SqliteConnection connection)
+        {
+            using var pragmaCmd = connection.CreateCommand();
+            pragmaCmd.CommandText = "PRAGMA table_info(IncomeBenchmarks);";
+
+            var hasSource = false;
+            var hasYear = false;
+
+            using (var reader = pragmaCmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var name = reader.GetString(1);
+                    if (string.Equals(name, "Source", StringComparison.OrdinalIgnoreCase)) hasSource = true;
+                    if (string.Equals(name, "Year", StringComparison.OrdinalIgnoreCase)) hasYear = true;
+                }
+            }
+
+            if (!hasSource)
+            {
+                using var addSource = connection.CreateCommand();
+                addSource.CommandText = "ALTER TABLE IncomeBenchmarks ADD COLUMN Source TEXT NOT NULL DEFAULT 'Seed';";
+                addSource.ExecuteNonQuery();
+            }
+
+            if (!hasYear)
+            {
+                using var addYear = connection.CreateCommand();
+                addYear.CommandText = "ALTER TABLE IncomeBenchmarks ADD COLUMN Year INTEGER NOT NULL DEFAULT 0;";
+                addYear.ExecuteNonQuery();
+            }
+
+            using var addIndex = connection.CreateCommand();
+            addIndex.CommandText = @"
+                CREATE UNIQUE INDEX IF NOT EXISTS IX_IncomeBenchmarks_Unique
+                    ON IncomeBenchmarks (State, AgeMin, AgeMax, Gender, Source, Year);
+            ";
+            addIndex.ExecuteNonQuery();
         }
 
         public async Task<IncomeBenchmark?> GetIncomeBenchmarkAsync(int age, string state, Gender? gender = null)
@@ -61,18 +110,19 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
             using var connection = new SqliteConnection(_connectionString);
             await connection.OpenAsync();
 
-            var query = @"
-                SELECT AgeMin, AgeMax, State, Gender, MedianIncome, AverageIncome 
+            var baseQuery = @"
+                SELECT AgeMin, AgeMax, State, Gender, MedianIncome, AverageIncome, Source, Year 
                 FROM IncomeBenchmarks 
                 WHERE State = @State 
                   AND @Age >= AgeMin 
                   AND @Age <= AgeMax
             ";
+            var orderClause = " ORDER BY COALESCE(Year, 0) DESC, CASE WHEN Source = 'Census' THEN 1 ELSE 0 END DESC";
 
             // If gender is provided, try to find a specific match first
             if (gender.HasValue)
             {
-                var genderQuery = query + " AND Gender = @Gender";
+                var genderQuery = baseQuery + " AND Gender = @Gender" + orderClause;
                 using var genderCmd = connection.CreateCommand();
                 genderCmd.CommandText = genderQuery;
                 genderCmd.Parameters.AddWithValue("@State", state);
@@ -90,7 +140,7 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
             // Or if we didn't search for gender, just find the general record.
             // Note: If the specific gender query failed, we come here. 
             // We search for Gender IS NULL specifically to avoid getting a random gendered record if gender was not requested or not found.
-            var fallbackQuery = query + " AND Gender IS NULL";
+            var fallbackQuery = baseQuery + " AND Gender IS NULL" + orderClause;
             using var fallbackCmd = connection.CreateCommand();
             fallbackCmd.CommandText = fallbackQuery;
             fallbackCmd.Parameters.AddWithValue("@State", state);
@@ -116,7 +166,9 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
                 reader.GetString(2),
                 reader.GetDecimal(4),
                 reader.GetDecimal(5),
-                gender
+                gender,
+                reader.IsDBNull(6) ? "Seed" : reader.GetString(6),
+                reader.IsDBNull(7) ? 0 : reader.GetInt32(7)
             );
         }
 
@@ -130,11 +182,11 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
             var command = connection.CreateCommand();
             command.Transaction = transaction;
 
-            // Simple parameterized query within loop for simplicity in SQLite 
-            // (Bulk insert via UNION or external CSV is faster but more complex for this demo)
+            // Use INSERT OR REPLACE to leverage your Unique Index
             command.CommandText = @"
-                INSERT INTO IncomeBenchmarks (State, AgeMin, AgeMax, Gender, MedianIncome, AverageIncome) 
-                VALUES (@State, @AgeMin, @AgeMax, @Gender, @MedianIncome, @AverageIncome)
+                INSERT OR REPLACE INTO IncomeBenchmarks 
+                (State, AgeMin, AgeMax, Gender, MedianIncome, AverageIncome, Source, Year) 
+                VALUES (@State, @AgeMin, @AgeMax, @Gender, @MedianIncome, @AverageIncome, @Source, @Year)
             ";
 
             var pState = command.Parameters.Add("@State", SqliteType.Text);
@@ -142,7 +194,9 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
             var pAgeMax = command.Parameters.Add("@AgeMax", SqliteType.Integer);
             var pGender = command.Parameters.Add("@Gender", SqliteType.Text);
             var pMedian = command.Parameters.Add("@MedianIncome", SqliteType.Real);
-            var pAverage = command.Parameters.Add("@AverageIncome", SqliteType.Real); // Using Real for decimal approx store
+            var pAverage = command.Parameters.Add("@AverageIncome", SqliteType.Real);
+            var pSource = command.Parameters.Add("@Source", SqliteType.Text);
+            var pYear = command.Parameters.Add("@Year", SqliteType.Integer);
 
             foreach (var b in benchmarks)
             {
@@ -152,12 +206,14 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
                 pGender.Value = b.Gender.HasValue ? b.Gender.ToString() : DBNull.Value;
                 pMedian.Value = b.MedianIncome;
                 pAverage.Value = b.AverageIncome;
+                pSource.Value = b.Source ?? "Seed";
+                pYear.Value = b.Year;
 
                 await command.ExecuteNonQueryAsync();
             }
 
+            await transaction.CommitAsync();
         }
-
         public async Task<DateTime> GetLastUpdateAsync()
         {
             using var connection = new SqliteConnection(_connectionString);
