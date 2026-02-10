@@ -19,6 +19,13 @@ namespace SmartVestFinancialAdvisor.Core.Benchmarks
         decimal AverageIncome,
         Gender? Gender = null,
         string Source = "Seed",
-        int Year = 0
+        int Year = 0,
+        decimal? P10 = null,
+        decimal? P25 = null,
+        decimal? P75 = null,
+        decimal? P90 = null,
+        decimal? P95 = null,
+        decimal? P99 = null,
+        decimal? P99_9 = null
     );
 }

@@ -1,0 +1,110 @@
+﻿C:\Users\chpie\OneDrive\Desktop\Final project\SmartVest\SmartVestFinancialAdvisor\SmartVestFinancialAdvisor\SmartVestFinancialAdvisor.csproj : warning NU1510: PackageReference System.Text.Json will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary. [C:\Users\chpie\OneDrive\Desktop\Final project\SmartVest\SmartVestFinancialAdvisor\SmartVest.TestRunner\SmartVest.TestRunner.csproj]
+C:\Users\chpie\OneDrive\Desktop\Final project\SmartVest\SmartVestFinancialAdvisor\SmartVestFinancialAdvisor\SmartVestFinancialAdvisor.csproj : warning NU1510: PackageReference System.Text.Json will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+=== SmartVestFinancialAdvisor Test ===
+
+dotnet : Unhandled 
+exception. Microsoft.D
+ata.Sqlite.SqliteExcep
+tion (0x80004005): 
+SQLite Error 1: 'no 
+such table: 
+IncomeBenchmarks'.
+At line:1 char:1
++ dotnet run 
+--project SmartVest.Te
+stRunner\SmartVest.Tes
+tRunner.csproj ...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo    
+          : 
+NotSpecified    : 
+(Unhandled excep.    
+..omeBenchmarks'.:S   
+ tring) [], RemoteEx  
+  ception
+    + 
+FullyQualifiedErr    
+orId : NativeComman   
+ dError
+ 
+   at Microsoft.Data.S
+qlite.SqliteException.
+ThrowExceptionForRC(In
+t32 rc, sqlite3 db)
+   at Microsoft.Data.S
+qlite.SqliteCommand.Pr
+epareAndEnumerateState
+ments()+MoveNext()
+   at Microsoft.Data.S
+qlite.SqliteCommand.Ge
+tStatements()+MoveNext
+()
+   at Microsoft.Data.S
+qlite.SqliteDataReader
+.NextResult()
+   at Microsoft.Data.S
+qlite.SqliteCommand.Ex
+ecuteReader(CommandBeh
+avior behavior)
+   at Microsoft.Data.S
+qlite.SqliteCommand.Ex
+ecuteReader()
+   at Microsoft.Data.S
+qlite.SqliteCommand.Ex
+ecuteNonQuery()
+   at SmartVestFinanci
+alAdvisor.Infrastructu
+re.Benchmarks.SqliteBe
+nchmarkProvider.Ensure
+Schema(SqliteConnectio
+n connection) in C:\Us
+ers\chpie\OneDrive\Des
+ktop\Final project\Sma
+rtVest\SmartVestFinanc
+ialAdvisor\SmartVestFi
+nancialAdvisor\Infrast
+ructure\Benchmarks\Sql
+iteBenchmarkProvider.c
+s:line 90
+   at SmartVestFinanci
+alAdvisor.Infrastructu
+re.Benchmarks.SqliteBe
+nchmarkProvider.Initia
+lizeDatabase(String 
+dbPath) in C:\Users\ch
+pie\OneDrive\Desktop\F
+inal project\SmartVest
+\SmartVestFinancialAdv
+isor\SmartVestFinancia
+lAdvisor\Infrastructur
+e\Benchmarks\SqliteBen
+chmarkProvider.cs:line
+ 28
+   at SmartVestFinanci
+alAdvisor.Infrastructu
+re.Benchmarks.SqliteBe
+nchmarkProvider..ctor(
+String dbPath) in C:\U
+sers\chpie\OneDrive\De
+sktop\Final project\Sm
+artVest\SmartVestFinan
+cialAdvisor\SmartVestF
+inancialAdvisor\Infras
+tructure\Benchmarks\Sq
+liteBenchmarkProvider.
+cs:line 18
+   at SmartVestFinanci
+alAdvisor.Program.Main
+(String[] args) in C:\
+Users\chpie\OneDrive\D
+esktop\Final project\S
+martVest\SmartVestFina
+ncialAdvisor\SmartVest
+.TestRunner\Program.cs
+:line 20
+   at SmartVestFinanci
+alAdvisor.Program.<Mai
+n>(String[] args)

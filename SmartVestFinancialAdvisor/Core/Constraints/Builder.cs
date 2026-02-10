@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+using SmartVestFinancialAdvisor.Core.Benchmarks;
 using SmartVestFinancialAdvisor.Core.Scoring;
 
 namespace SmartVestFinancialAdvisor.Core.Constraints
@@ -5,24 +7,31 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
     public class Builder
     {
         private readonly ScoreCalculator _scoreCalculator;
+        private readonly IBenchmarkProvider _benchmarkProvider;
 
-        public Builder()
+        public Builder(IBenchmarkProvider benchmarkProvider)
         {
-            _scoreCalculator = new ScoreCalculator();
+            _benchmarkProvider = benchmarkProvider;
+            _scoreCalculator = new ScoreCalculator(benchmarkProvider);
         }
 
-        public BuildResult Build(FinancialProfile profile)
+        public async Task<BuildResult> Build(FinancialProfile profile)
         {
             // 1. Convert FinancialProfile to ClientProfile
             var client = new ClientProfile
             {
                 MonthlyIncome = profile.MonthlyIncome,
                 Savings = profile.Savings,
-                MonthlyDebt = profile.MonthlyDebt
+                MonthlyDebt = profile.MonthlyDebt,
+                MonthlyExpense = profile.MonthlyExpense,
+                Age = profile.Age,
+                LocationState = profile.LocationState,
+                Gender = profile.Gender,
+                Items = profile.Items
             };
 
             // 2. Calculate financial score
-            FinancialScore score = _scoreCalculator.AggregateScore(client);
+            FinancialScore score = await _scoreCalculator.AggregateScore(client);
 
             // 3. Determine client category
             ClientCategory category = Categories.DetermineCategory(score, client);

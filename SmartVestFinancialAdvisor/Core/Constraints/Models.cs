@@ -1,5 +1,8 @@
 namespace SmartVestFinancialAdvisor.Core.Constraints
 {
+    /// <summary>
+    /// Represents the output of the Builder.
+    /// </summary>
     public class PortfolioConstraints
     {
         public decimal RiskTolerance { get; set; }

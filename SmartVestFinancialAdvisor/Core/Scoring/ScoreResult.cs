@@ -24,6 +24,6 @@ namespace SmartVestFinancialAdvisor.Core.Scoring
     public class FinancialScore
     {
         public decimal Total { get; set; }
-        public IReadOnlyList<SubScore> SubScores { get; set; }
+        public IReadOnlyList<SubScore> SubScores { get; set; } = new List<SubScore>();
     }
 }

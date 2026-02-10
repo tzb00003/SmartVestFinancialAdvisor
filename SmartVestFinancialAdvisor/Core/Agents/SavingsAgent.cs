@@ -14,7 +14,7 @@ namespace SmartVestFinancialAdvisor.Core.Agents
             var results = new List<AnalysisResult>();
 
             // Rule 1: Emergency Fund Check
-            decimal monthlyExpenses = profile.MonthlyIncome * 0.5m; // Approximation
+            decimal monthlyExpenses = profile.MonthlyExpense > 0 ? profile.MonthlyExpense : profile.MonthlyIncome * 0.5m;
             decimal monthsOfSavings = monthlyExpenses > 0 ? profile.Savings / monthlyExpenses : 0;
 
             if (monthsOfSavings < 3)

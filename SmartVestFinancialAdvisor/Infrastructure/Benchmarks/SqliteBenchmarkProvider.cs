@@ -3,11 +3,10 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using SmartVestFinancialAdvisor.Core.Benchmarks;
+using System.Collections.Generic;
 
 namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
 {
-    using System.Collections.Generic;
-
     public class SqliteBenchmarkProvider : IBenchmarkProvider
     {
         private readonly string _connectionString;
@@ -15,20 +14,21 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
         public SqliteBenchmarkProvider(string dbPath)
         {
             _connectionString = $"Data Source={dbPath}";
-            InitializeDatabase(dbPath);
+            bool dbExists = File.Exists(dbPath);
+
+            using (var connection = new SqliteConnection(_connectionString))
+            {
+                connection.Open();
+                if (dbExists)
+                {
+                    EnsureSchema(connection);
+                }
+                InitializeTables(connection);
+            }
         }
 
-        private void InitializeDatabase(string dbPath)
+        private void InitializeTables(SqliteConnection connection)
         {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            if (File.Exists(dbPath))
-            {
-                EnsureSchema(connection);
-                return;
-            }
-
             var command = connection.CreateCommand();
             command.CommandText = @"
                 CREATE TABLE IF NOT EXISTS SystemMetadata (
@@ -47,14 +47,21 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
                     MedianIncome DECIMAL NOT NULL,
                     AverageIncome DECIMAL NOT NULL,
                     Source TEXT NOT NULL,
-                    Year INTEGER NOT NULL
+                    Year INTEGER NOT NULL,
+                    P10 DECIMAL,
+                    P25 DECIMAL,
+                    P75 DECIMAL,
+                    P90 DECIMAL,
+                    P95 DECIMAL,
+                    P99 DECIMAL,
+                    P99_9 DECIMAL
                 );
 
                 CREATE UNIQUE INDEX IF NOT EXISTS IX_IncomeBenchmarks_Unique
                     ON IncomeBenchmarks (State, AgeMin, AgeMax, Gender, Source, Year);
 
                 -- Seed Data
-                INSERT INTO IncomeBenchmarks (State, AgeMin, AgeMax, Gender, MedianIncome, AverageIncome, Source, Year) VALUES 
+                INSERT OR IGNORE INTO IncomeBenchmarks (State, AgeMin, AgeMax, Gender, MedianIncome, AverageIncome, Source, Year) VALUES 
                 ('NY', 25, 34, NULL, 65000, 78000, 'Seed', 0),
                 ('NY', 35, 44, NULL, 85000, 95000, 'Seed', 0),
                 ('NY', 25, 34, 'Male', 70000, 82000, 'Seed', 0),
@@ -67,42 +74,35 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
 
         private void EnsureSchema(SqliteConnection connection)
         {
+            // Check if table exists before running pragma
+            var checkTab = connection.CreateCommand();
+            checkTab.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='IncomeBenchmarks';";
+            if (checkTab.ExecuteScalar() == null) return;
+
             using var pragmaCmd = connection.CreateCommand();
             pragmaCmd.CommandText = "PRAGMA table_info(IncomeBenchmarks);";
 
-            var hasSource = false;
-            var hasYear = false;
-
+            var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             using (var reader = pragmaCmd.ExecuteReader())
             {
                 while (reader.Read())
                 {
-                    var name = reader.GetString(1);
-                    if (string.Equals(name, "Source", StringComparison.OrdinalIgnoreCase)) hasSource = true;
-                    if (string.Equals(name, "Year", StringComparison.OrdinalIgnoreCase)) hasYear = true;
+                    columns.Add(reader.GetString(1));
                 }
             }
 
-            if (!hasSource)
+            string[] expectedColumns = { "Source", "Year", "P10", "P25", "P75", "P90", "P95", "P99", "P99_9" };
+            foreach (var col in expectedColumns)
             {
-                using var addSource = connection.CreateCommand();
-                addSource.CommandText = "ALTER TABLE IncomeBenchmarks ADD COLUMN Source TEXT NOT NULL DEFAULT 'Seed';";
-                addSource.ExecuteNonQuery();
+                if (!columns.Contains(col))
+                {
+                    using var addCol = connection.CreateCommand();
+                    string type = (col == "Source") ? "TEXT NOT NULL DEFAULT 'Seed'" :
+                                 (col == "Year") ? "INTEGER NOT NULL DEFAULT 0" : "DECIMAL";
+                    addCol.CommandText = $"ALTER TABLE IncomeBenchmarks ADD COLUMN {col} {type};";
+                    addCol.ExecuteNonQuery();
+                }
             }
-
-            if (!hasYear)
-            {
-                using var addYear = connection.CreateCommand();
-                addYear.CommandText = "ALTER TABLE IncomeBenchmarks ADD COLUMN Year INTEGER NOT NULL DEFAULT 0;";
-                addYear.ExecuteNonQuery();
-            }
-
-            using var addIndex = connection.CreateCommand();
-            addIndex.CommandText = @"
-                CREATE UNIQUE INDEX IF NOT EXISTS IX_IncomeBenchmarks_Unique
-                    ON IncomeBenchmarks (State, AgeMin, AgeMax, Gender, Source, Year);
-            ";
-            addIndex.ExecuteNonQuery();
         }
 
         public async Task<IncomeBenchmark?> GetIncomeBenchmarkAsync(int age, string state, Gender? gender = null)
@@ -111,15 +111,15 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
             await connection.OpenAsync();
 
             var baseQuery = @"
-                SELECT AgeMin, AgeMax, State, Gender, MedianIncome, AverageIncome, Source, Year 
+                SELECT AgeMin, AgeMax, State, Gender, MedianIncome, AverageIncome, Source, Year,
+                       P10, P25, P75, P90, P95, P99, P99_9
                 FROM IncomeBenchmarks 
                 WHERE State = @State 
                   AND @Age >= AgeMin 
                   AND @Age <= AgeMax
             ";
-            var orderClause = " ORDER BY COALESCE(Year, 0) DESC, CASE WHEN Source = 'Census' THEN 1 ELSE 0 END DESC";
+            var orderClause = " ORDER BY Year DESC, CASE WHEN Source = 'Census' THEN 1 ELSE 0 END DESC";
 
-            // If gender is provided, try to find a specific match first
             if (gender.HasValue)
             {
                 var genderQuery = baseQuery + " AND Gender = @Gender" + orderClause;
@@ -136,10 +136,6 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
                 }
             }
 
-            // Fallback: Try to find a gender-neutral record (Gender IS NULL)
-            // Or if we didn't search for gender, just find the general record.
-            // Note: If the specific gender query failed, we come here. 
-            // We search for Gender IS NULL specifically to avoid getting a random gendered record if gender was not requested or not found.
             var fallbackQuery = baseQuery + " AND Gender IS NULL" + orderClause;
             using var fallbackCmd = connection.CreateCommand();
             fallbackCmd.CommandText = fallbackQuery;
@@ -155,6 +151,58 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
             return null;
         }
 
+        public async Task<decimal?> GetTopTierIncomeCeilingAsync(int age, string state, Gender? gender = null)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var latestYearCmd = connection.CreateCommand();
+            latestYearCmd.CommandText = @"
+                SELECT MAX(Year)
+                FROM IncomeBenchmarks
+                WHERE State = @State
+                  AND @Age >= AgeMin
+                  AND @Age <= AgeMax
+            ";
+            latestYearCmd.Parameters.AddWithValue("@State", state);
+            latestYearCmd.Parameters.AddWithValue("@Age", age);
+
+            var latestYearObj = await latestYearCmd.ExecuteScalarAsync();
+            if (latestYearObj == null || latestYearObj == DBNull.Value) return null;
+            var latestYear = Convert.ToInt32(latestYearObj);
+
+            var censusExistsCmd = connection.CreateCommand();
+            censusExistsCmd.CommandText = @"
+                SELECT 1 FROM IncomeBenchmarks
+                WHERE State = @State AND Year = @Year AND @Age >= AgeMin AND @Age <= AgeMax AND Source = 'Census'
+                AND ((@Gender IS NULL AND Gender IS NULL) OR Gender = @Gender)
+                LIMIT 1
+            ";
+            censusExistsCmd.Parameters.AddWithValue("@State", state);
+            censusExistsCmd.Parameters.AddWithValue("@Year", latestYear);
+            censusExistsCmd.Parameters.AddWithValue("@Age", age);
+            censusExistsCmd.Parameters.AddWithValue("@Gender", gender.HasValue ? gender.Value.ToString() : DBNull.Value);
+
+            var hasCensus = await censusExistsCmd.ExecuteScalarAsync() != null;
+
+            var ceilingCmd = connection.CreateCommand();
+            ceilingCmd.CommandText = @"
+                SELECT COALESCE(MAX(P95), MAX(MedianIncome))
+                FROM IncomeBenchmarks
+                WHERE State = @State AND Year = @Year AND @Age >= AgeMin AND @Age <= AgeMax
+                  AND ((@Gender IS NULL AND Gender IS NULL) OR Gender = @Gender)
+                  AND (@UseCensus = 0 OR Source = 'Census')
+            ";
+            ceilingCmd.Parameters.AddWithValue("@State", state);
+            ceilingCmd.Parameters.AddWithValue("@Year", latestYear);
+            ceilingCmd.Parameters.AddWithValue("@Age", age);
+            ceilingCmd.Parameters.AddWithValue("@Gender", gender.HasValue ? gender.Value.ToString() : DBNull.Value);
+            ceilingCmd.Parameters.AddWithValue("@UseCensus", hasCensus ? 1 : 0);
+
+            var ceilingObj = await ceilingCmd.ExecuteScalarAsync();
+            return (ceilingObj == null || ceilingObj == DBNull.Value) ? null : Convert.ToDecimal(ceilingObj);
+        }
+
         private IncomeBenchmark MapReaderToBenchmark(SqliteDataReader reader)
         {
             var genderStr = reader.IsDBNull(3) ? null : reader.GetString(3);
@@ -168,10 +216,16 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
                 reader.GetDecimal(5),
                 gender,
                 reader.IsDBNull(6) ? "Seed" : reader.GetString(6),
-                reader.IsDBNull(7) ? 0 : reader.GetInt32(7)
+                reader.IsDBNull(7) ? 0 : reader.GetInt32(7),
+                reader.IsDBNull(8) ? null : reader.GetDecimal(8),
+                reader.IsDBNull(9) ? null : reader.GetDecimal(9),
+                reader.IsDBNull(10) ? null : reader.GetDecimal(10),
+                reader.IsDBNull(11) ? null : reader.GetDecimal(11),
+                reader.IsDBNull(12) ? null : reader.GetDecimal(12),
+                reader.IsDBNull(13) ? null : reader.GetDecimal(13),
+                reader.IsDBNull(14) ? null : reader.GetDecimal(14)
             );
         }
-
 
         public async Task BatchInsertBenchmarksAsync(IEnumerable<IncomeBenchmark> benchmarks)
         {
@@ -182,11 +236,12 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
             var command = connection.CreateCommand();
             command.Transaction = transaction;
 
-            // Use INSERT OR REPLACE to leverage your Unique Index
             command.CommandText = @"
                 INSERT OR REPLACE INTO IncomeBenchmarks 
-                (State, AgeMin, AgeMax, Gender, MedianIncome, AverageIncome, Source, Year) 
-                VALUES (@State, @AgeMin, @AgeMax, @Gender, @MedianIncome, @AverageIncome, @Source, @Year)
+                (State, AgeMin, AgeMax, Gender, MedianIncome, AverageIncome, Source, Year, 
+                 P10, P25, P75, P90, P95, P99, P99_9) 
+                VALUES (@State, @AgeMin, @AgeMax, @Gender, @MedianIncome, @AverageIncome, @Source, @Year,
+                        @P10, @P25, @P75, @P90, @P95, @P99, @P99_9)
             ";
 
             var pState = command.Parameters.Add("@State", SqliteType.Text);
@@ -197,6 +252,13 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
             var pAverage = command.Parameters.Add("@AverageIncome", SqliteType.Real);
             var pSource = command.Parameters.Add("@Source", SqliteType.Text);
             var pYear = command.Parameters.Add("@Year", SqliteType.Integer);
+            var pP10 = command.Parameters.Add("@P10", SqliteType.Real);
+            var pP25 = command.Parameters.Add("@P25", SqliteType.Real);
+            var pP75 = command.Parameters.Add("@P75", SqliteType.Real);
+            var pP90 = command.Parameters.Add("@P90", SqliteType.Real);
+            var pP95 = command.Parameters.Add("@P95", SqliteType.Real);
+            var pP99 = command.Parameters.Add("@P99", SqliteType.Real);
+            var pP99_9 = command.Parameters.Add("@P99_9", SqliteType.Real);
 
             foreach (var b in benchmarks)
             {
@@ -208,38 +270,37 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Benchmarks
                 pAverage.Value = b.AverageIncome;
                 pSource.Value = b.Source ?? "Seed";
                 pYear.Value = b.Year;
+                pP10.Value = (object?)b.P10 ?? DBNull.Value;
+                pP25.Value = (object?)b.P25 ?? DBNull.Value;
+                pP75.Value = (object?)b.P75 ?? DBNull.Value;
+                pP90.Value = (object?)b.P90 ?? DBNull.Value;
+                pP95.Value = (object?)b.P95 ?? DBNull.Value;
+                pP99.Value = (object?)b.P99 ?? DBNull.Value;
+                pP99_9.Value = (object?)b.P99_9 ?? DBNull.Value;
 
                 await command.ExecuteNonQueryAsync();
             }
 
             await transaction.CommitAsync();
         }
+
         public async Task<DateTime> GetLastUpdateAsync()
         {
             using var connection = new SqliteConnection(_connectionString);
             await connection.OpenAsync();
-
             var command = connection.CreateCommand();
             command.CommandText = "SELECT Value FROM SystemMetadata WHERE Key = 'LastCensusUpdate'";
             var result = await command.ExecuteScalarAsync();
-
-            if (result != null && DateTime.TryParse(result.ToString(), out var date))
-            {
-                return date;
-            }
-
-            return DateTime.MinValue;
+            return (result != null && DateTime.TryParse(result.ToString(), out var date)) ? date : DateTime.MinValue;
         }
 
         public async Task SetLastUpdateAsync(DateTime date)
         {
             using var connection = new SqliteConnection(_connectionString);
             await connection.OpenAsync();
-
             var command = connection.CreateCommand();
             command.CommandText = "UPDATE SystemMetadata SET Value = @Value WHERE Key = 'LastCensusUpdate'";
             command.Parameters.AddWithValue("@Value", date.ToString("o"));
-
             await command.ExecuteNonQueryAsync();
         }
     }
