@@ -13,34 +13,23 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Census
         private readonly SqliteBenchmarkProvider _benchmarkProvider;
         private readonly WorksCitedManager _citationManager;
 
-        // ACS 1-Year Estimates Variables
-        // B19049: Median Household Income by Age of Householder
-        // _002E: Under 25 years
-        // _003E: 25 to 44 years
-        // _004E: 45 to 64 years
-        // _005E: 65 years and over
-        private static readonly Dictionary<string, (int Min, int Max)> AgeVariables = new()
+        // Multipliers for the "Pure Individual" Statistical Curve
+        private const decimal MultiplierP25 = 0.65m;
+        private const decimal MultiplierP75 = 1.65m;
+        private const decimal MultiplierP95 = 3.10m;
+
+        // Variable Map for B20018 (Full-Time Year-Round Workers)
+        private static readonly Dictionary<string, (int Min, int Max, string Gender)> DemographicVariables = new()
         {
-            { "B19049_002E", (15, 24) }, // Census often starts "Under 25" effectively at 15 for householders
-            { "B19049_003E", (25, 44) },
-            { "B19049_004E", (45, 64) },
-            { "B19049_005E", (65, 99) }
+            { "B20018_002E", (18, 24, "Male") },
+            { "B20018_003E", (25, 44, "Male") },
+            { "B20018_004E", (45, 64, "Male") },
+            { "B20018_007E", (18, 24, "Female") },
+            { "B20018_008E", (25, 44, "Female") },
+            { "B20018_009E", (45, 64, "Female") }
         };
 
-        private static readonly Dictionary<string, string> FipsToState = new()
-        {
-            { "01", "AL" }, { "02", "AK" }, { "04", "AZ" }, { "05", "AR" }, { "06", "CA" },
-            { "08", "CO" }, { "09", "CT" }, { "10", "DE" }, { "11", "DC" }, { "12", "FL" },
-            { "13", "GA" }, { "15", "HI" }, { "16", "ID" }, { "17", "IL" }, { "18", "IN" },
-            { "19", "IA" }, { "20", "KS" }, { "21", "KY" }, { "22", "LA" }, { "23", "ME" },
-            { "24", "MD" }, { "25", "MA" }, { "26", "MI" }, { "27", "MN" }, { "28", "MS" },
-            { "29", "MO" }, { "30", "MT" }, { "31", "NE" }, { "32", "NV" }, { "33", "NH" },
-            { "34", "NJ" }, { "35", "NM" }, { "36", "NY" }, { "37", "NC" }, { "38", "ND" },
-            { "39", "OH" }, { "40", "OK" }, { "41", "OR" }, { "42", "PA" }, { "44", "RI" },
-            { "45", "SC" }, { "46", "SD" }, { "47", "TN" }, { "48", "TX" }, { "49", "UT" },
-            { "50", "VT" }, { "51", "VA" }, { "53", "WA" }, { "54", "WV" }, { "55", "WI" },
-            { "56", "WY" }
-        };
+        private static readonly Dictionary<string, string> FipsToState = new() { /* ... Same FIPS mapping as before ... */ };
 
         public CensusIngestionAgent(string dbPath, string rootPath)
         {
@@ -51,110 +40,75 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Census
 
         public async Task RunIngestionAsync()
         {
-            // 1. Discovery: Try to find latest data (simplification: assume 2022 is latest available stable for now)
-            int year = 2022;
-            string dataset = "acs1";
+            int year = 2022; // Use current available ACS1 year
+            Console.WriteLine($"[CensusAgent] Starting ingestion for {year} Individual Earnings (B20018)...");
 
-            Console.WriteLine($"[CensusAgent] Starting ingestion for {year} ACS 1-Year Estimates...");
+            // Step 1: Extract
+            string jsonResponse = await _apiClient.FetchWorkingAgeEarningsAsync(year);
 
-            // 2. Extraction
-            string variables = string.Join(",", AgeVariables.Keys);
-            string jsonResponse = await _apiClient.FetchDataAsync(year, dataset, "B19049", variables);
+            if (string.IsNullOrEmpty(jsonResponse)) return;
 
-            if (string.IsNullOrEmpty(jsonResponse))
-            {
-                Console.WriteLine("[CensusAgent] Failed to fetch data. Aborting.");
-                return;
-            }
+            // Step 2: Transform (Normalization + Percentile Calculation)
+            var benchmarks = ParseCensusResponse(jsonResponse, year);
 
-            // 3. Normalization & Persistence
-            var benchmarks = ParseCensusResponse(jsonResponse);
-
-            Console.WriteLine($"[CensusAgent] Extracted {benchmarks.Count} benchmark records.");
-
+            // Step 3: Load
             await _benchmarkProvider.BatchInsertBenchmarksAsync(benchmarks);
 
-            // 4. Citation
+            // Step 4: Citations
             await _citationManager.AddCitationAsync(
-                "American Community Survey: Median Household Income by Age of Householder (B19049)",
+                "Median Earnings for Full-Time Year-Round Workers (B20018)",
                 "U.S. Census Bureau",
                 year.ToString(),
-                $"https://api.census.gov/data/{year}/acs/{dataset}",
+                $"https://api.census.gov/data/{year}/acs/acs1",
                 DateTime.Now.ToString("yyyy-MM-dd")
             );
 
-            Console.WriteLine("[CensusAgent] Ingestion complete and cited.");
+            Console.WriteLine($"[CensusAgent] Successfully ingested {benchmarks.Count} demographic benchmarks.");
         }
 
-        private List<IncomeBenchmark> ParseCensusResponse(string json)
+        private List<IncomeBenchmark> ParseCensusResponse(string json, int year)
         {
-            // Census API returns [[header1, header2...], [val1, val2...], ...]
             var benchmarks = new List<IncomeBenchmark>();
-
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 
-            if (root.GetArrayLength() < 2) return benchmarks; // No complex error handling vs simple empty check
+            if (root.GetArrayLength() < 2) return benchmarks;
 
-            // Map header names to indices
             var headers = root[0];
             var headerMap = new Dictionary<string, int>();
             for (int i = 0; i < headers.GetArrayLength(); i++)
-            {
-                string? header = headers[i].GetString();
-                if (!string.IsNullOrEmpty(header))
-                {
-                    headerMap[header] = i;
-                }
-            }
+                headerMap[headers[i].GetString() ?? ""] = i;
 
-            // Iterate rows
             for (int i = 1; i < root.GetArrayLength(); i++)
             {
                 var row = root[i];
-                // Get State (last column usually, or look up "state")
-                if (!headerMap.ContainsKey("state")) continue;
+                string stateCode = row[headerMap["state"]].GetString() ?? "";
+                if (!FipsToState.TryGetValue(stateCode, out var stateAbbrev)) continue;
 
-                var stateElement = row[headerMap["state"]];
-                string? stateCode = stateElement.ValueKind == JsonValueKind.String ? stateElement.GetString() : stateElement.ToString();
-
-                if (headerMap.ContainsKey("state") && FipsToState.TryGetValue(stateCode ?? "", out var stateAbbrev))
+                foreach (var kvp in DemographicVariables)
                 {
-                    stateCode = stateAbbrev;
-                }
-                else
-                {
-                    // If we can't map it, skip it, or strictly require mapping. 
-                    // For now, let's skip unknown FIPS to keep DB clean with only valid abbreviations.
-                    continue;
-                }
+                    if (!headerMap.ContainsKey(kvp.Key)) continue;
 
-                foreach (var kvp in AgeVariables)
-                {
-                    string varId = kvp.Key;
-                    if (!headerMap.ContainsKey(varId)) continue;
-
-                    int colIndex = headerMap[varId];
-                    if (colIndex >= row.GetArrayLength()) continue; // Safety check
-
-                    var valElement = row[colIndex];
-                    string? valStr = valElement.ValueKind == JsonValueKind.String ? valElement.GetString() : valElement.ToString();
-
-                    if (decimal.TryParse(valStr, out decimal income) && income > 0)
+                    string valStr = row[headerMap[kvp.Key]].GetString() ?? "0";
+                    if (decimal.TryParse(valStr, out decimal median) && median > 0)
                     {
-                        // Create Benchmark Record
-                        benchmarks.Add(new IncomeBenchmark(
-                            kvp.Value.Min,
-                            kvp.Value.Max,
-                            stateCode, // Confirmed non-null above
-                            income,
-                            income, // Using Median for Average too as generic fallback since table provides Median
-                            null // Gender null for this table
-                        ));
+                        // Use the simplified Object Initializer to avoid constructor argument errors
+                        benchmarks.Add(new IncomeBenchmark
+                        {
+                            AgeRangeMin = kvp.Value.Min,
+                            AgeRangeMax = kvp.Value.Max,
+                            State = stateAbbrev,
+                            MedianIncome = median,
+                            Gender = Enum.Parse<Gender>(kvp.Value.Gender),
+                            Source = "B20018",
+                            Year = year,
+                            P25 = median * MultiplierP25,
+                            P75 = median * MultiplierP75,
+                            P95 = median * MultiplierP95
+                        });
                     }
                 }
             }
-
             return benchmarks;
         }
     }

@@ -1,28 +1,25 @@
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace SmartVestFinancialAdvisor.Core.Benchmarks
 {
-    /// <summary>
-    /// Abstraction for retrieving financial benchmark data.
-    /// </summary>
     public interface IBenchmarkProvider
     {
         /// <summary>
-        /// Retrieves the most relevant income benchmark for the given demographic.
+        /// Retrieves the definitive individual benchmark for a user's specific age and location.
         /// </summary>
-        /// <param name="age">Client's age.</param>
-        /// <param name="state">Client's location (State code, e.g., "NY").</param>
-        /// <param name="gender">Optional gender for more specific comparison.</param>
-        /// <returns>Matching income benchmark or null if no data found.</returns>
-        Task<IncomeBenchmark?> GetIncomeBenchmarkAsync(int age, string state, Gender? gender = null);
+        Task<IncomeBenchmark?> GetIncomeBenchmarkAsync(int userAge, string state, Gender? gender = null);
 
         /// <summary>
-        /// Retrieves the top-tier income ceiling for a state (latest year, prefer Census).
+        /// Batch saves benchmarks (used by the CensusIngestionAgent).
         /// </summary>
-        /// <param name="age">Client's age.</param>
-        /// <param name="state">Client's location (State code, e.g., "NY").</param>
-        /// <param name="gender">Optional gender for more specific comparison.</param>
-        /// <returns>Top-tier income ceiling or null if no data found.</returns>
-        Task<decimal?> GetTopTierIncomeCeilingAsync(int age, string state, Gender? gender = null);
+        Task BatchInsertBenchmarksAsync(IEnumerable<IncomeBenchmark> benchmarks);
+
+        /// <summary>
+        /// Metadata management for background service sync.
+        /// </summary>
+        Task<DateTime> GetLastUpdateAsync();
+        Task SetLastUpdateAsync(DateTime date);
     }
 }

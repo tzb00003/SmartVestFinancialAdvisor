@@ -7,10 +7,18 @@ using SmartVestFinancialAdvisor.Core.Scoring;
 
 namespace SmartVestFinancialAdvisor.Core.Agents
 {
+    /// <summary>
+    /// An advisor agent focused on evaluating the client's asset and debt structure 
+    /// and identifying optimization opportunities.
+    /// </summary>
     public class PortfolioAgent : IAdvisorAgent
     {
+        /// <inheritdoc/>
         public string Name => "Portfolio Agent";
 
+        /// <summary>
+        /// Analyzes the specific composition of assets and debts to find risks like toxic interest rates.
+        /// </summary>
         public Task<IEnumerable<AnalysisResult>> AnalyzeAsync(ClientProfile profile, FinancialScore score, IncomeBenchmark? benchmark)
         {
             var results = new List<AnalysisResult>();
@@ -24,6 +32,7 @@ namespace SmartVestFinancialAdvisor.Core.Agents
             var debts = items.Where(i => i.IsDebt).ToList();
             var assets = items.Where(i => !i.IsDebt).ToList();
 
+            // 1. Toxic Debt Detection (> 7% is typically considered high interest and is high usual stock market returns)
             var toxicDebt = debts
                 .Where(d => d.InterestRate > 7m)
                 .OrderByDescending(d => d.InterestRate)
@@ -34,21 +43,23 @@ namespace SmartVestFinancialAdvisor.Core.Agents
                 results.Add(new AnalysisResult(
                     Name,
                     $"Toxic debt detected: {debt.Label} at {debt.InterestRate}%.",
-                    $"URGENT: Pay off {debt.Label}. Its {debt.InterestRate}% rate is destroying your wealth.",
+                    $"URGENT: Prioritize paying off {debt.Label}. Its {debt.InterestRate}% interest rate is likely outstripping investment returns.",
                     ImpactLevel.Critical
                 ));
             }
 
+            // 2. Emergency Fund Verification
             if (!assets.Any(a => a.Label.Trim().Equals("Emergency Fund", System.StringComparison.OrdinalIgnoreCase)))
             {
                 results.Add(new AnalysisResult(
                     Name,
                     "No designated emergency fund found.",
-                    "ADVICE: You lack a designated Emergency Fund. Aim for 3 months of expenses in Cash.",
+                    "ADVICE: You lack a designated Emergency Fund in your tracked assets. Ensure you have at least 3-6 months of expenses in a liquid account.",
                     ImpactLevel.Warning
                 ));
             }
 
+            // 3. Negative Arbitrage Check (Paying more in debt than earning on assets)
             if (assets.Count > 0 && debts.Count > 0)
             {
                 var maxDebtRate = debts.Max(d => d.InterestRate);
@@ -58,13 +69,14 @@ namespace SmartVestFinancialAdvisor.Core.Agents
                 {
                     results.Add(new AnalysisResult(
                         Name,
-                        "Value leak detected between assets and debts.",
-                        $"You are earning {minAssetRate}% on assets while paying {maxDebtRate}% on debt. Prioritize debt payoff.",
+                        "Value leak detected (Negative Arbitrage).",
+                        $"You are earning {minAssetRate}% on certain assets while paying {maxDebtRate}% on debt. Moving funds from assets to pay debt would yield a guaranteed return.",
                         ImpactLevel.Warning
                     ));
                 }
             }
 
+            // 4. Debt Avalanche Guidance
             if (debts.Count >= 2)
             {
                 var ordered = debts.OrderByDescending(d => d.InterestRate).ToList();
@@ -72,8 +84,8 @@ namespace SmartVestFinancialAdvisor.Core.Agents
                 var second = ordered[1].Label;
                 results.Add(new AnalysisResult(
                     Name,
-                    "Debt avalanche order identified.",
-                    $"Prioritize paying off {first} first, then {second}.",
+                    "Debt avalanche strategy recommended.",
+                    $"To minimize total interest paid, concentrate extra payments on {first} first, then move to {second}.",
                     ImpactLevel.Info
                 ));
             }

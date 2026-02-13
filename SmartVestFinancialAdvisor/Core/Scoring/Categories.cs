@@ -1,13 +1,14 @@
 using System;
+using System.Threading.Tasks;
 using SmartVestFinancialAdvisor.Core.Benchmarks;
 
 namespace SmartVestFinancialAdvisor.Core.Scoring
 {
     public enum ClientCategory
     {
-        Conservative,
-        Balanced,
-        Aggressive
+        Conservative, // Bottom 25% - Needs safety
+        Balanced,     // Mid-range (P25 to P75)
+        Aggressive    // Top 25% (Above P75) - Can handle growth risk
     }
 
     public class CategoryDefinition
@@ -19,46 +20,83 @@ namespace SmartVestFinancialAdvisor.Core.Scoring
 
     public static class Categories
     {
-        public static ClientCategory DetermineCategory(FinancialScore score, ClientProfile profile, IncomeBenchmark? benchmark = null)
+        /// <summary>
+        /// Classifies the client by comparing their total financial health score 
+        /// against "Gatekeeper" peer avatars (P25 and P75).
+        /// </summary>
+        public static async Task<ClientCategory> DetermineCategoryAsync(
+            ClientProfile userProfile,
+            ScoreCalculator scoreCalculator,
+            IBenchmarkProvider benchmarkProvider)
         {
-            // 1. Determine base category from raw score
-            ClientCategory baseCategory;
-            if (score.Total < 40) baseCategory = ClientCategory.Conservative;
-            else if (score.Total < 70) baseCategory = ClientCategory.Balanced;
-            else baseCategory = ClientCategory.Aggressive;
+            // 1. Fetch benchmark using the simplified single-age parameter
+            var benchmark = await benchmarkProvider.GetIncomeBenchmarkAsync(
+                userProfile.Age,
+                userProfile.LocationState ?? "NY",
+                userProfile.Gender
+            );
 
-            // 2. Adjust based on benchmark (if available)
-            if (benchmark != null)
+            // Fallback: If no benchmark data is available, use static score brackets
+            if (benchmark == null)
             {
-                decimal annualIncome = profile.MonthlyIncome * 12;
-
-                // If client income is > 20% above median, they might have higher capacity for risk
-                if (annualIncome > benchmark.MedianIncome * 1.2m)
+                var userScore = await scoreCalculator.AggregateScore(userProfile);
+                return userScore.Total switch
                 {
-                    // Upgrade category if possible (Conservative -> Balanced -> Aggressive)
-                    if (baseCategory == ClientCategory.Conservative) return ClientCategory.Balanced;
-                    if (baseCategory == ClientCategory.Balanced) return ClientCategory.Aggressive;
-                }
-
-                // If client income is < 20% below median, they might need more stability
-                if (annualIncome < benchmark.MedianIncome * 0.8m)
-                {
-                    // Downgrade category if possible
-                    if (baseCategory == ClientCategory.Aggressive) return ClientCategory.Balanced;
-                    if (baseCategory == ClientCategory.Balanced) return ClientCategory.Conservative;
-                }
+                    < 40 => ClientCategory.Conservative,
+                    < 75 => ClientCategory.Balanced,
+                    _ => ClientCategory.Aggressive
+                };
             }
 
-            return baseCategory;
+            // 2. Generate the "Gatekeeper" Peers
+            // These represent the 'low bar' and 'high bar' for the user's demographic
+            var p25Peer = scoreCalculator.CreatePeerAvatar(benchmark, "P25");
+            var p75Peer = scoreCalculator.CreatePeerAvatar(benchmark, "P75");
+
+            // 3. Calculate Scores for comparison
+            var userScoreResult = await scoreCalculator.AggregateScore(userProfile);
+            var p25ScoreResult = await scoreCalculator.AggregateScore(p25Peer);
+            var p75ScoreResult = await scoreCalculator.AggregateScore(p75Peer);
+
+            // 4. Bracket Comparison Logic
+            // If user score < P25 peer score -> Conservative
+            if (userScoreResult.Total < p25ScoreResult.Total)
+            {
+                return ClientCategory.Conservative;
+            }
+
+            // If user score < P75 peer score -> Balanced
+            if (userScoreResult.Total < p75ScoreResult.Total)
+            {
+                return ClientCategory.Balanced;
+            }
+
+            // User is in the top 25% of their regional demographic
+            return ClientCategory.Aggressive;
         }
 
         public static CategoryDefinition GetCategoryDefinition(ClientCategory category)
         {
             return category switch
             {
-                ClientCategory.Conservative => new CategoryDefinition { DefaultStockAllocation = 0.3m, DefaultBondAllocation = 0.6m, DefaultCashAllocation = 0.1m },
-                ClientCategory.Balanced => new CategoryDefinition { DefaultStockAllocation = 0.5m, DefaultBondAllocation = 0.4m, DefaultCashAllocation = 0.1m },
-                ClientCategory.Aggressive => new CategoryDefinition { DefaultStockAllocation = 0.7m, DefaultBondAllocation = 0.2m, DefaultCashAllocation = 0.1m },
+                ClientCategory.Conservative => new CategoryDefinition
+                {
+                    DefaultStockAllocation = 0.3m,
+                    DefaultBondAllocation = 0.6m,
+                    DefaultCashAllocation = 0.1m
+                },
+                ClientCategory.Balanced => new CategoryDefinition
+                {
+                    DefaultStockAllocation = 0.5m,
+                    DefaultBondAllocation = 0.4m,
+                    DefaultCashAllocation = 0.1m
+                },
+                ClientCategory.Aggressive => new CategoryDefinition
+                {
+                    DefaultStockAllocation = 0.8m, // Increased for Aggressive
+                    DefaultBondAllocation = 0.15m,
+                    DefaultCashAllocation = 0.05m
+                },
                 _ => throw new ArgumentException("Invalid category")
             };
         }

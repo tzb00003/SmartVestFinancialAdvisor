@@ -1,6 +1,8 @@
 using System.Threading.Tasks;
 using SmartVestFinancialAdvisor.Core.Benchmarks;
 using SmartVestFinancialAdvisor.Core.Scoring;
+using SmartVestFinancialAdvisor.Core.Financial;
+using SmartVestFinancialAdvisor.Core.Constraints;
 
 namespace SmartVestFinancialAdvisor.Core.Constraints
 {
@@ -9,39 +11,35 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
         private readonly ScoreCalculator _scoreCalculator;
         private readonly IBenchmarkProvider _benchmarkProvider;
 
-        public Builder(IBenchmarkProvider benchmarkProvider)
+        // Better: Inject the calculator. This makes testing much easier!
+        public Builder(IBenchmarkProvider benchmarkProvider, ScoreCalculator scoreCalculator)
         {
             _benchmarkProvider = benchmarkProvider;
-            _scoreCalculator = new ScoreCalculator(benchmarkProvider);
+            _scoreCalculator = scoreCalculator;
         }
 
         public async Task<BuildResult> Build(FinancialProfile profile)
         {
-            // 1. Convert FinancialProfile to ClientProfile
-            var client = new ClientProfile
-            {
-                MonthlyIncome = profile.MonthlyIncome,
-                Savings = profile.Savings,
-                MonthlyDebt = profile.MonthlyDebt,
-                MonthlyExpense = profile.MonthlyExpense,
-                Age = profile.Age,
-                LocationState = profile.LocationState,
-                Gender = profile.Gender,
-                Items = profile.Items
-            };
+            // 1. Map to ClientProfile
+            var client = MapToClientProfile(profile);
 
-            // 2. Calculate financial score
-            FinancialScore score = await _scoreCalculator.AggregateScore(client);
+            // 2. Get the Score (Do this first so we have the data ready)
+            var score = await _scoreCalculator.AggregateScore(client);
 
-            // 3. Determine client category
-            ClientCategory category = Categories.DetermineCategory(score, client);
+            // 3. Determine Category (Peer Model)
+            var category = await Categories.DetermineCategoryAsync(
+                client,
+                _scoreCalculator,
+                _benchmarkProvider
+            );
 
-            // 4. Get category definition
+            // 4. Get Rules & Finalize Constraints
             var definition = Categories.GetCategoryDefinition(category);
 
-            // 5. Build portfolio constraints
             var constraints = new PortfolioConstraints
             {
+                // We use the category defaults, but you could "nudge" them 
+                // based on the profile.RiskTolerance here if you wanted.
                 RiskTolerance = profile.RiskTolerance,
                 MaxStockAllocation = definition.DefaultStockAllocation,
                 MaxBondAllocation = definition.DefaultBondAllocation,
@@ -55,12 +53,35 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
                 Constraints = constraints
             };
         }
-    }
 
-    public class BuildResult
-    {
-        public FinancialScore Score { get; set; }
-        public ClientCategory Category { get; set; }
-        public PortfolioConstraints Constraints { get; set; }
+        private ClientProfile MapToClientProfile(FinancialProfile profile)
+        {
+            return new ClientProfile
+            {
+                MonthlyIncome = profile.MonthlyIncome,
+                Savings = profile.Savings,
+                Debt = profile.Debt,
+                MonthlyExpense = profile.MonthlyExpense,
+                Age = profile.Age,
+                LocationState = profile.LocationState,
+                Gender = profile.Gender,
+                Items = profile.Items
+            };
+        }
     }
+}
+
+/// <summary>
+/// Container for the objects produced during the build process.
+/// </summary>
+public class BuildResult
+{
+    /// <summary>The calculated multidimensional financial score.</summary>
+    public FinancialScore Score { get; set; } = null!;
+
+    /// <summary>The risk category assigned to the client.</summary>
+    public ClientCategory Category { get; set; }
+
+    /// <summary>The target portfolio allocation limits.</summary>
+    public PortfolioConstraints Constraints { get; set; } = null!;
 }
