@@ -1,0 +1,331 @@
+﻿
+@page "/financial-survey"
+@using System.ComponentModel.DataAnnotations
+@using MudBlazor
+@using SmartVestFinancialAdvisor.Components.Models
+
+<MudPaper Class="mx-auto my-6 p-6" Elevation="2" Style="max-width: 840px;">
+    <MudStack Spacing="2">
+        <MudText Typo="Typo.h5" Class="mb-1">
+            Financial Survey
+        </MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Please fill in all required fields. Your responses help us understand your financial profile.
+        </MudText>
+
+        <MudForm @ref="_form"
+                 Model="_model"
+                 Validation="OnValidationChanged"
+                 Immediate="true">
+
+            <MudGrid Spacing="2">
+                <!-- Name -->
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.Name"
+                                  For="@(() => _model.Name)"
+                                  Label="Name"
+                                  Placeholder="Full name"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Required="true"
+                                  RequiredError="Name is required"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Person"
+                                  Autocomplete="name"
+                                  InputMode="InputMode.text" />
+                </MudItem>
+
+                <!-- Age -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="int?"
+                                     @bind-Value="_model.Age"
+                                     For="@(() => _model.Age)"
+                                     Label="Age"
+                                     Placeholder="e.g., 35"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="18"
+                                     Max="120"
+                                     Step="1"
+                                     Required="true"
+                                     RequiredError="Age is required"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.Cake"
+                                     InputMode="InputMode.numeric"
+                                     DebounceInterval="150"
+                                     HideSpinButtons="true" />
+                </MudItem>
+
+                <!-- Gender -->
+                <MudItem xs="12" md="6">
+                    <MudSelect T="string"
+                               @bind-Value="_model.Gender"
+                               For="@(() => _model.Gender)"
+                               Label="Gender"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Dense="true"
+                               Required="true"
+                               RequiredError="Gender is required"
+                               AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem T="string" >Male</MudSelectItem>
+                        <MudSelectItem T="string">Female</MudSelectItem>
+                        <MudSelectItem T="string" >Non-binary</MudSelectItem>
+                        <MudSelectItem T="string">Prefer not to say</MudSelectItem>
+                        <MudSelectItem T="string">Other</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <!-- Credit Score -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="int?"
+                                     @bind-Value="_model.CreditScore"
+                                     For="@(() => _model.CreditScore)"
+                                     Label="Credit Score"
+                                     Placeholder="300 - 850"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="300"
+                                     Max="850"
+                                     Step="1"
+                                     Required="true"
+                                     RequiredError="Credit score is required"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.Score"
+                                     InputMode="InputMode.numeric"
+                                     DebounceInterval="150"
+                                     HideSpinButtons="true" />
+                </MudItem>
+
+                <!-- Annual Income -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="decimal?"
+                                     @bind-Value="_model.AnnualIncome"
+                                     For="@(() => _model.AnnualIncome)"
+                                     Label="Annual Income"
+                                     Placeholder="e.g., 85000"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0"
+                                     Step="1000"
+                                     Required="true"
+                                     RequiredError="Annual income is required"
+                                     InputMode="InputMode.numeric"
+                                     DebounceInterval="200"
+                                     HideSpinButtons="true">
+                        <AdornmentStartContent>
+                            <MudText>$</MudText>
+                        </AdornmentStartContent>
+                        <HelperText>Gross income before taxes.</HelperText>
+                    </MudNumericField>
+                </MudItem>
+
+                <!-- Total Debt -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="decimal?"
+                                     @bind-Value="_model.TotalDebt"
+                                     For="@(() => _model.TotalDebt)"
+                                     Label="Total Debt"
+                                     Placeholder="e.g., 25000"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0"
+                                     Step="500"
+                                     Required="true"
+                                     RequiredError="Total debt is required"
+                                     InputMode="InputMode.numeric"
+                                     DebounceInterval="200"
+                                     HideSpinButtons="true">
+                        <AdornmentStartContent>
+                            <MudText>$</MudText>
+                        </AdornmentStartContent>
+                        <HelperText>Sum of outstanding balances (loans, credit cards, etc.).</HelperText>
+                    </MudNumericField>
+                </MudItem>
+
+                <!-- Monthly Debt Expenses -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="decimal?"
+                                     @bind-Value="_model.MonthlyDebtExpenses"
+                                     For="@(() => _model.MonthlyDebtExpenses)"
+                                     Label="Monthly Debt Expenses"
+                                     Placeholder="e.g., 650"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0"
+                                     Step="50"
+                                     Required="true"
+                                     RequiredError="Monthly debt expenses are required"
+                                     InputMode="InputMode.numeric"
+                                     DebounceInterval="200"
+                                     HideSpinButtons="true">
+                        <AdornmentStartContent>
+                            <MudText>$</MudText>
+                        </AdornmentStartContent>
+                        <HelperText>Payments toward loans/credit cards each month.</HelperText>
+                    </MudNumericField>
+                </MudItem>
+
+                <!-- Monthly Expenses (non-debt) -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="decimal?"
+                                     @bind-Value="_model.MonthlyExpenses"
+                                     For="@(() => _model.MonthlyExpenses)"
+                                     Label="Monthly Expenses (Non-debt)"
+                                     Placeholder="e.g., 2200"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0"
+                                     Step="50"
+                                     Required="true"
+                                     RequiredError="Monthly expenses are required"
+                                     InputMode="InputMode.numeric"
+                                     DebounceInterval="200"
+                                     HideSpinButtons="true">
+                        <AdornmentStartContent>
+                            <MudText>$</MudText>
+                        </AdornmentStartContent>
+                        <HelperText>Housing, utilities, food, insurance, etc.</HelperText>
+                    </MudNumericField>
+                </MudItem>
+            </MudGrid>
+
+            @if (!string.IsNullOrWhiteSpace(_serverError))
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mt-2">
+                    @_serverError
+                </MudAlert>
+            }
+
+            <MudStack Direction="Row" Spacing="2" Class="mt-4">
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Default"
+                           OnClick="Reset"
+                           Disabled="_isSubmitting">
+                    Reset
+                </MudButton>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="Submit"
+                           Disabled="@(!_isValid || _isSubmitting)"
+                           Loading="_isSubmitting">
+                    Submit
+                </MudButton>
+            </MudStack>
+        </MudForm>
+
+        @if (_submitted && _form?.IsValid == true)
+        {
+            <MudDivider Class="my-4" />
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Submission Preview</MudText>
+
+
+            <MudTable T="FieldRow" Items="SummaryRows" Dense="true" Elevation="0" Hover="false" Bordered="false" Striped="false">
+                <HeaderContent>
+                    <MudTh>Field</MudTh>
+                    <MudTh>Value</MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+                    <MudTd DataLabel="Field">@context.Field</MudTd>
+                    <MudTd DataLabel="Value">@context.Value</MudTd>
+                </RowTemplate>
+            </MudTable>
+
+        }
+    </MudStack>
+</MudPaper>
+
+@code {
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _isSubmitting;
+    private bool _submitted;
+    private string? _serverError;
+    private readonly FinancialSurveyModel _model = new();
+
+    private void OnValidationChanged(MudForm form) => _isValid = form.IsValid;
+
+    private async Task Submit()
+    {
+        _serverError = null;
+        _submitted = false;
+
+        if (_form is null)
+            return;
+
+        await _form.Validate();
+        if (!_form.IsValid)
+            return;
+
+        try
+        {
+            _isSubmitting = true;
+
+            // TODO: Persist data to your API/service
+            // await _api.SaveSurveyAsync(_model);
+
+            _submitted = true;
+        }
+        catch (Exception ex)
+        {
+            _serverError = "An unexpected error occurred while submitting. Please try again.";
+            Console.Error.WriteLine(ex);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private void Reset()
+    {
+        _serverError = null;
+        _submitted = false;
+
+        _model.Name = string.Empty;
+        _model.Age = null;
+        _model.Gender = null;
+        _model.AnnualIncome = null;
+        _model.TotalDebt = null;
+        _model.MonthlyDebtExpenses = null;
+        _model.MonthlyExpenses = null;
+        _model.CreditScore = null;
+
+        _form?.ResetValidation();
+    }
+
+    private static string FormatCurrency(decimal? value)
+        => value.HasValue ? value.Value.ToString("C") : "-";
+
+    /// <summary>
+    /// Computes monthly Debt-to-Income: (MonthlyDebt) / (AnnualIncome / 12).
+    /// </summary>
+    private static decimal? ComputeDti(decimal? annualIncome, decimal? monthlyDebt)
+    {
+        if (annualIncome is null || annualIncome <= 0 || monthlyDebt is null) return null;
+        var monthlyIncome = annualIncome.Value / 12m;
+        if (monthlyIncome <= 0) return null;
+        return monthlyDebt.Value / monthlyIncome;
+    }
+
+
+    private sealed record FieldRow(string Field, string Value);
+
+    private IEnumerable<FieldRow> SummaryRows => new[]
+    {
+        new FieldRow("Name", _model.Name ?? "-"),
+        new FieldRow("Age", _model.Age?.ToString() ?? "-"),
+        new FieldRow("Gender", _model.Gender ?? "-"),
+        new FieldRow("Annual Income", FormatCurrency(_model.AnnualIncome)),
+        new FieldRow("Total Debt", FormatCurrency(_model.TotalDebt)),
+        new FieldRow("Monthly Debt Expenses", FormatCurrency(_model.MonthlyDebtExpenses)),
+        new FieldRow("Monthly Expenses", FormatCurrency(_model.MonthlyExpenses)),
+        new FieldRow("Credit Score", _model.CreditScore?.ToString() ?? "-"),
+        new FieldRow(
+            "Estimated DTI (Monthly Debt / Monthly Income)",
+            ComputeDti(_model.AnnualIncome, _model.MonthlyDebtExpenses) is {} dti ? $"{dti:P1}" : "-")
+    };
+
+}

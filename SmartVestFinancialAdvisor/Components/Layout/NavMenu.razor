@@ -1,4 +1,9 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@using MudBlazor
+@using SmartVestFinancialAdvisor.Components
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">Smartvest</a>
     </div>
@@ -10,21 +15,31 @@
     <nav class="nav flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="home" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-
-        @* <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+                <MudIcon Icon="@Icons.Material.Filled.House" Class="me-2" /> 
+                   Home
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+            <NavLink class="nav-link" href="financial-survey" Match="NavLinkMatch.All">
+                <MudIcon Icon="@Icons.Material.Filled.Description" Class="me-2" />
+                Financial Survey
             </NavLink>
-        </div> *@
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="resources" Match="NavLinkMatch.All">
+                <MudIcon Icon="@Icons.Material.Filled.Pageview" Class="me-2" />
+                Financial Resources
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="help" Match="NavLinkMatch.All">
+                <MudIcon Icon="@Icons.Material.Filled.QuestionMark" Class="me-2" />
+                Help
+            </NavLink>
+        </div>
     </nav>
 </div>
 ﻿

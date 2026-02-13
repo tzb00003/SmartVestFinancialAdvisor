@@ -1,5 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @using MudBlazor
+@inject IDialogService DialogService
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -40,21 +42,12 @@
         </article>
     </main>
 
-        @* Required *@
-        <MudThemeProvider />
-        <MudPopoverProvider />
+    <MudThemeProvider />
+    <MudPopoverProvider />
 
-        @* Needed for dialogs *@
-        <MudDialogProvider />
-
-        @* Needed for snackbars *@
-        <MudSnackbarProvider />
-</div>
-
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    <!-- 2. Ensure interactivity is enabled -->
+    <MudDialogProvider @rendermode="InteractiveServer" />
+    <MudSnackbarProvider />
 </div>
 
 
