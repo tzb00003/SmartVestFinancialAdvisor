@@ -42,44 +42,10 @@
         </div>
     </nav>
 </div>
+﻿
 
+<MudNavMenu>
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.House">Home</MudNavLink>
+    <MudNavLink Href="/Counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Calculate">Counter</MudNavLink>
 
-@code {
-
-    private async Task OpenSignInDialog()
-    {
-        var options = new DialogOptions
-        {
-            CloseOnEscapeKey = true,
-            NoHeader = false,         // we are using TitleContent in the dialog
-            FullWidth = true,
-            MaxWidth = MaxWidth.Small
-        };
-
-        // Replace TestDialog with the actual component class name of your test dialog
-        var dialogRef = DialogService.Show<LogInDialog>("", options);
-        var result = await dialogRef.Result;
-
-        if (!result.Canceled && result.Data is bool ok && ok)
-        {
-            Console.WriteLine("Dialog returned OK");
-            // Handle success here (e.g., mark user as signed in, navigate, etc.)
-        }
-    }
-    private Task OpenDialogAsync()
-    {
-        var options = new DialogOptions { CloseOnEscapeKey = true };
-
-        return DialogService.ShowAsync<LogInDialog>("Simple Dialog", options);
-    }
-    
-   private async Task OpenTestDialog()
-    {
-        Snackbar.Add("OpenTestDialog clicked", Severity.Info);
-
-        var dialogRef = DialogService.Show<LogInDialog>();
-        var result = await dialogRef.Result;
-    }
-
-}
-``
+</MudNavMenu>
