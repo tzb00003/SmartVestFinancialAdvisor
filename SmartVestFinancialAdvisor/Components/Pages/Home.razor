@@ -3,6 +3,9 @@
 @using MudBlazor
 @using System.Collections.Generic
 @using System.Linq
+@using SmartVestFinancialAdvisor.Components
+@inject IDialogService DialogService
+
 
 <PageTitle>Home</PageTitle>
 <MudGrid Spacing="3">
@@ -28,6 +31,7 @@
                 </Columns>
             </MudDataGrid>
         </MudPaper>
+
     </MudItem>
 
 
@@ -36,9 +40,9 @@
         <MudPaper Class="pa-4">
             <MudText Typo="Typo.h6">Quick Actions</MudText>
             <div class="d-flex mt-2" style="gap:12px;flex-wrap:wrap;">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="false">Take Financial Survey</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="false">Financial Resources</MudButton>
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" Disabled="false">Help</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/financial-survey" Disabled="false">Take Financial Survey</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Href="/resources" Disabled="false">Financial Resources</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" Href="/help" Disabled="false">Help</MudButton>
             </div>
         </MudPaper>
     </MudItem>
@@ -62,7 +66,7 @@
 @code {
     // Simple POCO to match your DataGrid columns (lowercase properties)
   
-
+    private string _message = string.Empty;
     // Backing list for the grid
     public List<SuggestionItem> Suggestions { get; set; } = new();
 
@@ -129,4 +133,10 @@
             }
         };
     }
+
+
+
+
+
+   
 }
