@@ -5,45 +5,34 @@ using SmartVestFinancialAdvisor.Core.Benchmarks;
 
 namespace SmartVestFinancialAdvisor.Core.Agents
 {
-    /// <summary>
-    /// An advisor agent that identifies insights by comparing client income against regional benchmarks.
-    /// </summary>
     public class BenchmarkAgent : IAdvisorAgent
     {
-        /// <inheritdoc/>
-        public string Name => "Benchmark Agent";
+        public string Name => "Demographic Benchmark Agent";
 
-        /// <summary>
-        /// Analyzes client income relative to peer data to identify wealth gaps or excess capacity.
-        /// </summary>
         public Task<IEnumerable<AnalysisResult>> AnalyzeAsync(ClientProfile profile, FinancialScore score, IncomeBenchmark? benchmark)
         {
             var results = new List<AnalysisResult>();
+            if (benchmark == null) return Task.FromResult<IEnumerable<AnalysisResult>>(results);
 
-            if (benchmark != null)
+            decimal annualIncome = profile.MonthlyIncome * 12;
+
+            // P95 Tier - High Capacity
+            if (annualIncome >= benchmark.P95)
             {
-                decimal annualIncome = profile.MonthlyIncome * 12;
-
-                // High earner detection (>50% above median)
-                if (annualIncome > benchmark.MedianIncome * 1.5m)
-                {
-                    results.Add(new AnalysisResult(
-                        Name,
-                        "Income significantly above peer median.",
-                        "You may have capacity for more aggressive investments based on your income power.",
-                        ImpactLevel.Info
-                    ));
-                }
-                // Under-performer detection (20% below median)
-                else if (annualIncome < benchmark.MedianIncome * 0.8m)
-                {
-                    results.Add(new AnalysisResult(
-                        Name,
-                        "Income below peer median.",
-                        "Relative to your peers in this region/age group, your income is lower. Focus on professional development or debt reduction.",
-                        ImpactLevel.Warning
-                    ));
-                }
+                results.Add(new AnalysisResult(
+                    Name,
+                    "Top-tier earnings detected (Top 5% of peers).",
+                    "Your income power is exceptional for your demographic. Prioritize maxing out tax-advantaged accounts (401k/HSA) immediately.",
+                    ImpactLevel.Info));
+            }
+            // Below P25 - Income Gap
+            else if (annualIncome < benchmark.P25)
+            {
+                results.Add(new AnalysisResult(
+                    Name,
+                    "Income is below the 25th percentile for your region.",
+                    "Your primary wealth hurdle is income volume. Focus on professional certification or side-income to increase investment capacity.",
+                    ImpactLevel.Warning));
             }
 
             return Task.FromResult<IEnumerable<AnalysisResult>>(results);

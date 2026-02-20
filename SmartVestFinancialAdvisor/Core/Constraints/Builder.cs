@@ -1,8 +1,10 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using SmartVestFinancialAdvisor.Core.Benchmarks;
 using SmartVestFinancialAdvisor.Core.Scoring;
 using SmartVestFinancialAdvisor.Core.Financial;
-using SmartVestFinancialAdvisor.Core.Constraints;
+using SmartVestFinancialAdvisor.Core.Agents; // Added for AdvisorEngine
 
 namespace SmartVestFinancialAdvisor.Core.Constraints
 {
@@ -10,12 +12,16 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
     {
         private readonly ScoreCalculator _scoreCalculator;
         private readonly IBenchmarkProvider _benchmarkProvider;
+        private readonly AdvisorEngine _advisorEngine; // Added orchestrator
 
-        // Better: Inject the calculator. This makes testing much easier!
-        public Builder(IBenchmarkProvider benchmarkProvider, ScoreCalculator scoreCalculator)
+        public Builder(
+            IBenchmarkProvider benchmarkProvider,
+            ScoreCalculator scoreCalculator,
+            AdvisorEngine advisorEngine) // Injected
         {
             _benchmarkProvider = benchmarkProvider;
             _scoreCalculator = scoreCalculator;
+            _advisorEngine = advisorEngine;
         }
 
         public async Task<BuildResult> Build(FinancialProfile profile)
@@ -23,23 +29,32 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
             // 1. Map to ClientProfile
             var client = MapToClientProfile(profile);
 
-            // 2. Get the Score (Do this first so we have the data ready)
+            // 2. Fetch Demographic Benchmark for contextual analysis
+            var benchmark = await _benchmarkProvider.GetIncomeBenchmarkAsync(
+                client.Age,
+                client.LocationState ?? "NY",
+                client.Gender
+            );
+
+            // 3. Get the Score
             var score = await _scoreCalculator.AggregateScore(client);
 
-            // 3. Determine Category (Peer Model)
+            // 4. Determine Category (Peer Model compares user against P25/P75)
             var category = await Categories.DetermineCategoryAsync(
                 client,
                 _scoreCalculator,
                 _benchmarkProvider
             );
 
-            // 4. Get Rules & Finalize Constraints
+            // 5. Run the Advisor Engine for qualitative insights
+            // This runs BenchmarkAgent, PortfolioAgent, and SavingsAgent in parallel
+            var analysisResults = await _advisorEngine.RunAnalysisAsync(client, score, benchmark);
+
+            // 6. Finalize Constraints based on Category Definition
             var definition = Categories.GetCategoryDefinition(category);
 
             var constraints = new PortfolioConstraints
             {
-                // We use the category defaults, but you could "nudge" them 
-                // based on the profile.RiskTolerance here if you wanted.
                 RiskTolerance = profile.RiskTolerance,
                 MaxStockAllocation = definition.DefaultStockAllocation,
                 MaxBondAllocation = definition.DefaultBondAllocation,
@@ -50,7 +65,8 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
             {
                 Score = score,
                 Category = category,
-                Constraints = constraints
+                Constraints = constraints,
+                Insights = analysisResults.ToList() // Added to result
             };
         }
 
@@ -69,19 +85,19 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
             };
         }
     }
-}
 
-/// <summary>
-/// Container for the objects produced during the build process.
-/// </summary>
-public class BuildResult
-{
-    /// <summary>The calculated multidimensional financial score.</summary>
-    public FinancialScore Score { get; set; } = null!;
+    /// <summary>
+    /// Container for the objects produced during the build process.
+    /// </summary>
+    public class BuildResult
+    {
+        public FinancialScore Score { get; set; } = null!;
+        public ClientCategory Category { get; set; }
+        public PortfolioConstraints Constraints { get; set; } = null!;
 
-    /// <summary>The risk category assigned to the client.</summary>
-    public ClientCategory Category { get; set; }
-
-    /// <summary>The target portfolio allocation limits.</summary>
-    public PortfolioConstraints Constraints { get; set; } = null!;
+        /// <summary>
+        /// The prioritized collection of agent-generated recommendations.
+        /// </summary>
+        public List<AnalysisResult> Insights { get; set; } = new();
+    }
 }

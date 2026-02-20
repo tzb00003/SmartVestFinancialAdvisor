@@ -34,12 +34,19 @@ namespace SmartVestFinancialAdvisor.Infrastructure.Census
         {
             string citation = $"{publisher}. \"{title}.\" *{publisher}*, {year}, {url}. Accessed {accessDate}.";
 
-            // Ensure the directory exists
-            bool fileExists = File.Exists(_filePath);
+            string existingContent = string.Empty;
+            if (File.Exists(_filePath))
+            {
+                existingContent = await File.ReadAllTextAsync(_filePath);
+                if (existingContent.IndexOf(url, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return;
+                }
+            }
 
             using (var writer = new StreamWriter(_filePath, append: true))
             {
-                if (!fileExists)
+                if (string.IsNullOrWhiteSpace(existingContent))
                 {
                     await writer.WriteLineAsync("# Works Cited");
                     await writer.WriteLineAsync("");

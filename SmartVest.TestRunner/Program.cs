@@ -7,7 +7,8 @@ using SmartVestFinancialAdvisor.Infrastructure.Benchmarks;
 using System.Threading.Tasks;
 using System;
 using System.IO;
-using System.Collections.Generic; // Added for List<>
+using System.Collections.Generic;
+using System.Linq;
 
 namespace SmartVestFinancialAdvisor
 {
@@ -15,80 +16,92 @@ namespace SmartVestFinancialAdvisor
     {
         static async Task Main(string[] args)
         {
-            Console.WriteLine("=== SmartVestFinancialAdvisor Test ===\n");
+            Console.WriteLine("=== SmartVest Financial Advisor: System Integration Test ===\n");
 
-            // 1. Setup Benchmark Provider and database
+            // 1. Setup Infrastructure
             string dbPath = Path.Combine(Environment.CurrentDirectory, "benchmarks.db");
             var benchmarkProvider = new SqliteBenchmarkProvider(dbPath);
             var aggregationService = new FinancialAggregationService();
 
-            // 2. Create a sample client profile (Updated with Items list for scoring)
-            ClientProfile clientProfile = new ClientProfile
+            // 2. Initialize the Advisor Engine and Register Agents
+            // In a production app, this would be handled by a DI container
+            var advisorEngine = new AdvisorEngine();
+            advisorEngine.RegisterAgent(new BenchmarkAgent());
+            advisorEngine.RegisterAgent(new PortfolioAgent());
+            advisorEngine.RegisterAgent(new SavingsAgent());
+
+            // 3. Setup Logic Services
+            var scoreCalculator = new ScoreCalculator(benchmarkProvider, aggregationService);
+            var builder = new Builder(benchmarkProvider, scoreCalculator, advisorEngine);
+
+            // 4. Create Sample Data (Example: High Earner with "Toxic" Debt)
+            FinancialProfile financialProfile = new FinancialProfile
             {
-                MonthlyIncome = 6000m,
-                Savings = 20000m,
-                Debt = 1500m,
-                Age = 30,
-                LocationState = "OH",
-                Gender = null,
+                MonthlyIncome = 12000m, // High income ($144k/year)
+                MonthlyExpense = 5000m,
+                Savings = 15000m,       // Relatively low savings for this income
+                Debt = 8000m,
+                Age = 35,
+                LocationState = "NY",
+                RiskTolerance = 0.7m,
                 Items = new List<FinancialItem>
                 {
-                    new FinancialItem { Label = "Checking", Amount = 5000m, IsDebt = false, IsRetirement = false },
-                    new FinancialItem { Label = "401k", Amount = 30000m, IsDebt = false, IsRetirement = true },
-                    new FinancialItem { Label = "Car Loan", Amount = 1500m, MonthlyPayment = 300m, InterestRate = 0.05m, IsDebt = true }
+                    new FinancialItem { Label = "Checking", Amount = 15000m, IsDebt = false },
+                    new FinancialItem { Label = "High-Interest Credit Card", Amount = 8000m, InterestRate = 22.5m, IsDebt = true },
+                    new FinancialItem { Label = "Retirement Account", Amount = 45000m, IsRetirement = true, IsDebt = false }
                 }
             };
 
-            // 3. Create a FinancialProfile for constraints builder
-            FinancialProfile financialProfile = new FinancialProfile
-            {
-                MonthlyIncome = clientProfile.MonthlyIncome,
-                Savings = clientProfile.Savings,
-                Debt = clientProfile.Debt,
-                Age = clientProfile.Age,
-                LocationState = clientProfile.LocationState,
-                Items = clientProfile.Items,
-                RiskTolerance = 0.5m
-            };
-
-            // 4. Ingest Census Data first
-            Console.WriteLine("\n--- Census Data Agent ---");
+            // 5. Ingest Census Data (Ensures the SQLite DB is populated for benchmarking)
+            Console.WriteLine("--- Phase 1: Data Ingestion ---");
             var censusAgent = new CensusIngestionAgent(dbPath, Environment.CurrentDirectory);
             await censusAgent.RunIngestionAsync();
+            Console.WriteLine("Census ingestion complete.\n");
 
-            // 5. Calculate scores
-            ScoreCalculator scoreCalculator = new ScoreCalculator(benchmarkProvider, aggregationService);
-            FinancialScore financialScore = await scoreCalculator.AggregateScore(clientProfile);
+            // 6. Execute the Builder (Orchestrates Scoring, Categorization, and Agent Analysis)
+            Console.WriteLine("--- Phase 2: Processing Financial Strategy ---");
+            BuildResult result = await builder.Build(financialProfile);
 
-            Console.WriteLine("--- SubScores ---");
-            foreach (var sub in financialScore.SubScores)
+            // 7. Output Results
+            Console.WriteLine($"\n[Calculation Results]");
+            Console.WriteLine($"Total Financial Score: {result.Score.Total}/100");
+            Console.WriteLine($"Assigned Category:    {result.Category}");
+
+            Console.WriteLine("\n[Score Breakdown]");
+            foreach (var subScore in result.Score.SubScores)
             {
-                Console.WriteLine($"{sub.Name}: Raw={sub.RawScore}, Weighted={sub.WeightedScore}");
+                Console.WriteLine($" - {subScore.Name,-20}: {subScore.RawScore:F0}/100 (Weight: {subScore.Weight:P0})");
             }
-            Console.WriteLine($"\nTotal Score: {financialScore.Total}");
 
-            // 6. Determine client category (FIXED: Now uses the Peer-Comparison Async method)
-            Console.WriteLine("\n--- Categorization ---");
-            ClientCategory category = await Categories.DetermineCategoryAsync(
-                clientProfile,
-                scoreCalculator,
-                benchmarkProvider
-            );
+            Console.WriteLine($"\n[Portfolio Constraints]");
+            Console.WriteLine($"Stocks: {result.Constraints.MaxStockAllocation:P0} | Bonds: {result.Constraints.MaxBondAllocation:P0} | Cash: {result.Constraints.MaxCashAllocation:P0}");
 
-            var categoryDefinition = Categories.GetCategoryDefinition(category);
+            Console.WriteLine($"\n[Agent Insights & Recommendations]");
+            if (!result.Insights.Any())
+            {
+                Console.WriteLine("No specific issues detected. Stay the course.");
+            }
+            else
+            {
+                foreach (var insight in result.Insights)
+                {
+                    // Color code output based on impact
+                    var color = insight.Impact switch
+                    {
+                        ImpactLevel.Critical => ConsoleColor.Red,
+                        ImpactLevel.Warning => ConsoleColor.Yellow,
+                        _ => ConsoleColor.Cyan
+                    };
 
-            Console.WriteLine($"Client Category (Peer-Based): {category}");
-            Console.WriteLine($"Rules: Stock={categoryDefinition.DefaultStockAllocation}, Bond={categoryDefinition.DefaultBondAllocation}");
+                    Console.ForegroundColor = color;
+                    Console.WriteLine($"[{insight.Impact.ToString().ToUpper()}] {insight.AgentName}");
+                    Console.ForegroundColor = ConsoleColor.White;
+                    Console.WriteLine($"Insight: {insight.Insight}");
+                    Console.WriteLine($"Advice:  {insight.Recommendation}\n");
+                }
+            }
 
-            // 7. Build portfolio constraints (Using the Builder class)
-            Builder builder = new Builder(benchmarkProvider);
-            BuildResult buildResult = await builder.Build(financialProfile);
-
-            Console.WriteLine("\n--- Portfolio Constraints ---");
-            Console.WriteLine($"Final Category: {buildResult.Category}");
-            Console.WriteLine($"Max Stock Allocation: {buildResult.Constraints.MaxStockAllocation}");
-
-            Console.WriteLine("\n=== Test Complete ===");
+            Console.WriteLine("=== Test Complete ===");
         }
     }
 }
