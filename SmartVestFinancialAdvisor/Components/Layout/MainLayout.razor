@@ -1,71 +1,36 @@
 ﻿@inherits LayoutComponentBase
 @using MudBlazor
+@inject IDialogService DialogService
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
     </div>
 
-<MudThemeProvider />
-<MudSnackbarProvider />
-<MudDialogProvider />
-
-<MudLayout>
-    <MudAppBar>
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="DrawerToggle" />
-        
-        <MudSpacer />
-         @*Login and Signup buttons*@
-        <MudButton Variant="Variant.Filled" Color="Color.Primary">Login</MudButton> 
-        
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary">Sign Up</MudButton>
-        
-    </MudAppBar> 
-    <MudDrawer @bind-Open="@_drawerOpen" Elevation="24" Anchor="Anchor.Left">
-        <MudDrawerHeader>
-            <MudText Typo="Typo.h6">
-                Header
-            </MudText>
-        </MudDrawerHeader>
-        <MudDrawerContainer>
-            <NavMenu />
-        </MudDrawerContainer>
-    </MudDrawer>
-    
-    <MudMainContent>
-        @Body 
-    </MudMainContent>
+    <main>
+        <div class="top-row px-4">
+            <!-- 1. Use @onclick and prevent default anchor behavior -->
+            <a @onclick="OpenTestDialog" style="cursor:pointer" target="_blank">Sign In</a>
+        </div>
 
         <article class="content px-4">
             @Body
         </article>
     </main>
 
-        @* Required *@
-        <MudThemeProvider />
-        <MudPopoverProvider />
+    <MudThemeProvider />
+    <MudPopoverProvider />
 
-        @* Needed for dialogs *@
-        <MudDialogProvider />
-
-        @* Needed for snackbars *@
-        <MudSnackbarProvider />
+    <!-- 2. Ensure interactivity is enabled -->
+    <MudDialogProvider @rendermode="InteractiveServer" />
+    <MudSnackbarProvider />
 </div>
-
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
-
-
-
-</MudLayout>
 
 @code {
-    bool _drawerOpen = false;
-
-    void DrawerToggle()
+    // 3. The method must exist here
+    private async Task OpenTestDialog()
     {
-        _drawerOpen = !_drawerOpen;
+        var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true, MaxWidth = MaxWidth.Small };
+        await DialogService.ShowAsync<LogInDialog>("Sign In", options);
     }
 }
