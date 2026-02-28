@@ -1,10 +1,12 @@
-﻿
-@page "/financial-survey"
-@using System.ComponentModel.DataAnnotations
+﻿@page "/financial-survey"
+@using System.Globalization
 @using MudBlazor
 @using SmartVestFinancialAdvisor.Components.Models
+@using SmartVestFinancialAdvisor.Components.ViewModels
+@inject FinancialSurveyViewModel vm
+@implements IDisposable
 
-<MudPaper Class="mx-auto my-6 p-6" Elevation="2" Style="max-width: 840px;">
+<MudPaper Class="mx-auto my-6 p-6" Elevation="2" Style="max-width: 980px;">
     <MudStack Spacing="2">
         <MudText Typo="Typo.h5" Class="mb-1">
             Financial Survey
@@ -13,33 +15,134 @@
             Please fill in all required fields. Your responses help us understand your financial profile.
         </MudText>
 
+        <!-- CHANGED: Use OnValidationChanged (bool) -->
         <MudForm @ref="_form"
-                 Model="_model"
-                 Validation="OnValidationChanged"
+                 Model="vm.Model"
+                 OnValidationChanged="OnValidationChanged"
                  Immediate="true">
 
             <MudGrid Spacing="2">
-                <!-- Name -->
+                <!-- Monthly Income -->
                 <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_model.Name"
-                                  For="@(() => _model.Name)"
-                                  Label="Name"
-                                  Placeholder="Full name"
-                                  Variant="Variant.Outlined"
-                                  Margin="Margin.Dense"
-                                  Required="true"
-                                  RequiredError="Name is required"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.Person"
-                                  Autocomplete="name"
-                                  InputMode="InputMode.text" />
+                    <MudNumericField T="decimal?"
+                                     @bind-Value="vm.Model.MonthlyIncome"
+                                     For="@(() => vm.Model.MonthlyIncome)"
+                                     Label="Monthly Income (Gross)"
+                                     Placeholder="e.g., 7,500"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0"
+                                     Step="100"
+                                     Required="true"
+                                     RequiredError="Monthly income is required"
+                                     InputMode="InputMode.numeric"
+                                     DebounceInterval="150"
+                                     HideSpinButtons="true"
+                                     Format="C0"
+                                     Culture="@CultureInfo.CurrentCulture">
+                        <AdornmentStartContent>
+                            <MudText>$</MudText>
+                        </AdornmentStartContent>
+                        <HelperText>Gross income before taxes and deductions (per month).</HelperText>
+                    </MudNumericField>
+                </MudItem>
+
+                <!-- Savings -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="decimal?"
+                                     @bind-Value="vm.Model.Savings"
+                                     For="@(() => vm.Model.Savings)"
+                                     Label="Savings (Liquid)"
+                                     Placeholder="e.g., 25,000"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0"
+                                     Step="500"
+                                     Required="true"
+                                     RequiredError="Savings is required"
+                                     InputMode="InputMode.numeric"
+                                     DebounceInterval="150"
+                                     HideSpinButtons="true"
+                                     Format="C0"
+                                     Culture="@CultureInfo.CurrentCulture">
+                        <AdornmentStartContent>
+                            <MudText>$</MudText>
+                        </AdornmentStartContent>
+                        <HelperText>Cash &amp; equivalents (e.g., checking, savings, money market).</HelperText>
+                    </MudNumericField>
+                </MudItem>
+
+                <!-- Total Debt Payments (Monthly) -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="decimal?"
+                                     @bind-Value="vm.Model.Debt"
+                                     For="@(() => vm.Model.Debt)"
+                                     Label="Debt Payments (Monthly)"
+                                     Placeholder="e.g., 1,200"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0"
+                                     Step="50"
+                                     Required="true"
+                                     RequiredError="Total monthly debt payments are required"
+                                     InputMode="InputMode.numeric"
+                                     DebounceInterval="150"
+                                     HideSpinButtons="true"
+                                     Format="C0"
+                                     Culture="@CultureInfo.CurrentCulture">
+                        <AdornmentStartContent>
+                            <MudText>$</MudText>
+                        </AdornmentStartContent>
+                        <HelperText>Sum of monthly payments for liabilities.</HelperText>
+                    </MudNumericField>
+                </MudItem>
+
+                <!-- Monthly Living Expenses -->
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="decimal?"
+                                     @bind-Value="vm.Model.MonthlyExpense"
+                                     For="@(() => vm.Model.MonthlyExpense)"
+                                     Label="Monthly Living Expenses"
+                                     Placeholder="e.g., 2,800"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0"
+                                     Step="50"
+                                     Required="true"
+                                     RequiredError="Monthly living expenses are required"
+                                     InputMode="InputMode.numeric"
+                                     DebounceInterval="150"
+                                     HideSpinButtons="true"
+                                     Format="C0"
+                                     Culture="@CultureInfo.CurrentCulture">
+                        <AdornmentStartContent>
+                            <MudText>$</MudText>
+                        </AdornmentStartContent>
+                        <HelperText>Housing, utilities, food, childcare, insurance, etc.</HelperText>
+                    </MudNumericField>
+                </MudItem>
+
+                <!-- Risk Level -->
+                <MudItem xs="12" md="6">
+                    <MudSelect T="RiskLevel"
+                               @bind-Value="vm.Model.RiskLevel"
+                               For="@(() => vm.Model.RiskLevel)"
+                               Label="Risk Level"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Dense="true"
+                               AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem T="RiskLevel" Value="RiskLevel.Low">Low</MudSelectItem>
+                        <MudSelectItem T="RiskLevel" Value="RiskLevel.Med">Med</MudSelectItem>
+                        <MudSelectItem T="RiskLevel" Value="RiskLevel.High">High</MudSelectItem>
+                    </MudSelect>
                 </MudItem>
 
                 <!-- Age -->
                 <MudItem xs="12" md="6">
                     <MudNumericField T="int?"
-                                     @bind-Value="_model.Age"
-                                     For="@(() => _model.Age)"
+                                     @bind-Value="vm.Model.Age"
+                                     For="@(() => vm.Model.Age)"
                                      Label="Age"
                                      Placeholder="e.g., 35"
                                      Variant="Variant.Outlined"
@@ -49,151 +152,179 @@
                                      Step="1"
                                      Required="true"
                                      RequiredError="Age is required"
-                                     Adornment="Adornment.Start"
-                                     AdornmentIcon="@Icons.Material.Filled.Cake"
                                      InputMode="InputMode.numeric"
                                      DebounceInterval="150"
                                      HideSpinButtons="true" />
                 </MudItem>
 
-                <!-- Gender -->
+                <!-- State -->
                 <MudItem xs="12" md="6">
                     <MudSelect T="string"
-                               @bind-Value="_model.Gender"
-                               For="@(() => _model.Gender)"
-                               Label="Gender"
+                               @bind-Value="vm.Model.State"
+                               For="@(() => vm.Model.State)"
+                               Label="State"
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense"
                                Dense="true"
                                Required="true"
-                               RequiredError="Gender is required"
-                               AnchorOrigin="Origin.BottomCenter">
-                        <MudSelectItem T="string" >Male</MudSelectItem>
-                        <MudSelectItem T="string">Female</MudSelectItem>
-                        <MudSelectItem T="string" >Non-binary</MudSelectItem>
-                        <MudSelectItem T="string">Prefer not to say</MudSelectItem>
-                        <MudSelectItem T="string">Other</MudSelectItem>
+                               RequiredError="State is required"
+                               SearchFunc="@((string text) => Task.FromResult(vm.States.Where(s => s.Contains(text, StringComparison.OrdinalIgnoreCase)).ToList()))"
+                               ToStringFunc="@(s => s)">
+                        @foreach (var s in vm.States)
+                        {
+                            <MudSelectItem Value="@s">@s</MudSelectItem>
+                        }
                     </MudSelect>
-                </MudItem>
-
-                <!-- Credit Score -->
-                <MudItem xs="12" md="6">
-                    <MudNumericField T="int?"
-                                     @bind-Value="_model.CreditScore"
-                                     For="@(() => _model.CreditScore)"
-                                     Label="Credit Score"
-                                     Placeholder="300 - 850"
-                                     Variant="Variant.Outlined"
-                                     Margin="Margin.Dense"
-                                     Min="300"
-                                     Max="850"
-                                     Step="1"
-                                     Required="true"
-                                     RequiredError="Credit score is required"
-                                     Adornment="Adornment.Start"
-                                     AdornmentIcon="@Icons.Material.Filled.Score"
-                                     InputMode="InputMode.numeric"
-                                     DebounceInterval="150"
-                                     HideSpinButtons="true" />
-                </MudItem>
-
-                <!-- Annual Income -->
-                <MudItem xs="12" md="6">
-                    <MudNumericField T="decimal?"
-                                     @bind-Value="_model.AnnualIncome"
-                                     For="@(() => _model.AnnualIncome)"
-                                     Label="Annual Income"
-                                     Placeholder="e.g., 85000"
-                                     Variant="Variant.Outlined"
-                                     Margin="Margin.Dense"
-                                     Min="0"
-                                     Step="1000"
-                                     Required="true"
-                                     RequiredError="Annual income is required"
-                                     InputMode="InputMode.numeric"
-                                     DebounceInterval="200"
-                                     HideSpinButtons="true">
-                        <AdornmentStartContent>
-                            <MudText>$</MudText>
-                        </AdornmentStartContent>
-                        <HelperText>Gross income before taxes.</HelperText>
-                    </MudNumericField>
-                </MudItem>
-
-                <!-- Total Debt -->
-                <MudItem xs="12" md="6">
-                    <MudNumericField T="decimal?"
-                                     @bind-Value="_model.TotalDebt"
-                                     For="@(() => _model.TotalDebt)"
-                                     Label="Total Debt"
-                                     Placeholder="e.g., 25000"
-                                     Variant="Variant.Outlined"
-                                     Margin="Margin.Dense"
-                                     Min="0"
-                                     Step="500"
-                                     Required="true"
-                                     RequiredError="Total debt is required"
-                                     InputMode="InputMode.numeric"
-                                     DebounceInterval="200"
-                                     HideSpinButtons="true">
-                        <AdornmentStartContent>
-                            <MudText>$</MudText>
-                        </AdornmentStartContent>
-                        <HelperText>Sum of outstanding balances (loans, credit cards, etc.).</HelperText>
-                    </MudNumericField>
-                </MudItem>
-
-                <!-- Monthly Debt Expenses -->
-                <MudItem xs="12" md="6">
-                    <MudNumericField T="decimal?"
-                                     @bind-Value="_model.MonthlyDebtExpenses"
-                                     For="@(() => _model.MonthlyDebtExpenses)"
-                                     Label="Monthly Debt Expenses"
-                                     Placeholder="e.g., 650"
-                                     Variant="Variant.Outlined"
-                                     Margin="Margin.Dense"
-                                     Min="0"
-                                     Step="50"
-                                     Required="true"
-                                     RequiredError="Monthly debt expenses are required"
-                                     InputMode="InputMode.numeric"
-                                     DebounceInterval="200"
-                                     HideSpinButtons="true">
-                        <AdornmentStartContent>
-                            <MudText>$</MudText>
-                        </AdornmentStartContent>
-                        <HelperText>Payments toward loans/credit cards each month.</HelperText>
-                    </MudNumericField>
-                </MudItem>
-
-                <!-- Monthly Expenses (non-debt) -->
-                <MudItem xs="12" md="6">
-                    <MudNumericField T="decimal?"
-                                     @bind-Value="_model.MonthlyExpenses"
-                                     For="@(() => _model.MonthlyExpenses)"
-                                     Label="Monthly Expenses (Non-debt)"
-                                     Placeholder="e.g., 2200"
-                                     Variant="Variant.Outlined"
-                                     Margin="Margin.Dense"
-                                     Min="0"
-                                     Step="50"
-                                     Required="true"
-                                     RequiredError="Monthly expenses are required"
-                                     InputMode="InputMode.numeric"
-                                     DebounceInterval="200"
-                                     HideSpinButtons="true">
-                        <AdornmentStartContent>
-                            <MudText>$</MudText>
-                        </AdornmentStartContent>
-                        <HelperText>Housing, utilities, food, insurance, etc.</HelperText>
-                    </MudNumericField>
                 </MudItem>
             </MudGrid>
 
-            @if (!string.IsNullOrWhiteSpace(_serverError))
+            <MudDivider Class="my-4" />
+
+            <!-- Financial Items -->
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.subtitle1">Financial Items</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Add assets and liabilities. Use interest rate as a decimal (e.g., 0.05 for 5%).
+                </MudText>
+
+                <MudTable Items="vm.Model.Items" Dense="true" Elevation="0" Hover="false" Bordered="true" Striped="false">
+                    <HeaderContent>
+                        <MudTh>Label</MudTh>
+                        <MudTh class="text-right">Amount</MudTh>
+                        <MudTh class="text-right">Monthly Payment</MudTh>
+                        <MudTh class="text-right">Interest Rate</MudTh>
+                        <MudTh class="text-center">Is Debt</MudTh>
+                        <MudTh class="text-center">Is Retirement</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+
+                    <RowTemplate>
+                        <MudTd DataLabel="Label" Class="w-40">
+                            <!-- NOTE: Keep Required ONLY if you don't start with a default empty row -->
+                            <MudTextField @bind-Value="@context.Label"
+                                          Placeholder="e.g., 401(k), Auto Loan"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Immediate="true"
+                                          Required="true"
+                                          RequiredError="Label is required" />
+                        </MudTd>
+
+                        <MudTd DataLabel="Amount" Class="w-32">
+                            <MudNumericField T="decimal?"
+                                             @bind-Value="@context.Amount"
+                                             Variant="Variant.Outlined"
+                                             Margin="Margin.Dense"
+                                             Min="0"
+                                             Step="100"
+                                             InputMode="InputMode.numeric"
+                                             HideSpinButtons="true"
+                                             Adornment="Adornment.Start"
+                                             AdornmentIcon="@Icons.Material.Filled.AttachMoney"
+                                             Immediate="true"
+                                             Format="C0"
+                                             Culture="@CultureInfo.CurrentCulture">
+                                <HelperText>Current balance/value</HelperText>
+                            </MudNumericField>
+                        </MudTd>
+
+                        <MudTd DataLabel="Monthly Payment" Class="w-32">
+                            <MudNumericField T="decimal?"
+                                             @bind-Value="@context.MonthlyPayment"
+                                             Variant="Variant.Outlined"
+                                             Margin="Margin.Dense"
+                                             Min="0"
+                                             Step="25"
+                                             InputMode="InputMode.numeric"
+                                             HideSpinButtons="true"
+                                             Adornment="Adornment.Start"
+                                             AdornmentIcon="@Icons.Material.Filled.Payments"
+                                             Immediate="true"
+                                             Format="C0"
+                                             Culture="@CultureInfo.CurrentCulture">
+                                <HelperText>Payment per month</HelperText>
+                            </MudNumericField>
+                        </MudTd>
+
+                        <!-- Interest Rate with converter (user enters 5.5 meaning 5.5%) -->
+                        <MudTd DataLabel="Interest Rate" Class="w-28">
+                            <MudNumericField T="decimal?"
+                                             @bind-Value="@context.InterestRate"
+                                             Variant="Variant.Outlined"
+                                             Margin="Margin.Dense"
+                                             Min="0"
+                                             Max="100"
+                                             Step="0.1m"
+                                             Placeholder="5.5"
+                                             InputMode="InputMode.numeric"
+                                             HideSpinButtons="true"
+                                             Immediate="true"
+                                             Converter="PercentAsNumberConverter"
+                                             Culture="@Culture">
+                                <AdornmentEndContent>
+                                    <MudText>%</MudText>
+                                </AdornmentEndContent>
+                                <HelperText>Enter percent (e.g., 5.5 for 5.5%).</HelperText>
+                            </MudNumericField>
+                        </MudTd>
+
+                        <MudTd DataLabel="Is Debt" Class="text-center">
+                            <MudCheckBox T="bool"
+                                         @bind-Checked="@context.IsDebt"
+                                         Immediate="true"
+                                         For="@(() => context.IsDebt)"
+                                         AriaLabel="Mark as debt" />
+                        </MudTd>
+
+                        <MudTd DataLabel="Is Retirement" Class="text-center">
+                            <MudCheckBox T="bool"
+                                         @bind-Checked="@context.IsRetirement"
+                                         Disabled="@context.IsDebt"
+                                         Immediate="true"
+                                         For="@(() => context.IsRetirement)"
+                                         AriaLabel="Mark as retirement" />
+                        </MudTd>
+
+                        <MudTd>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Color="Color.Error"
+                                           Disabled="vm.IsSubmitting"
+                                           OnClick="@(() => vm.RemoveItem(context))"
+                                           AriaLabel="Remove item" />
+                        </MudTd>
+                    </RowTemplate>
+
+                    <FooterContent>
+                        <MudTd ColSpan="7">
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Add"
+                                       Disabled="vm.IsSubmitting"
+                                       OnClick="vm.AddItem">
+                                Add Item
+                            </MudButton>
+                        </MudTd>
+                    </FooterContent>
+                </MudTable>
+
+                <MudHidden Breakpoint="Breakpoint.SmAndUp">
+                    <div class="mt-2">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   Disabled="vm.IsSubmitting"
+                                   OnClick="vm.AddItem"
+                                   FullWidth="true">
+                            Add Item
+                        </MudButton>
+                    </div>
+                </MudHidden>
+            </MudStack>
+
+            @if (!string.IsNullOrWhiteSpace(vm.ServerError))
             {
                 <MudAlert Severity="Severity.Error" Dense="true" Class="mt-2">
-                    @_serverError
+                    @vm.ServerError
                 </MudAlert>
             }
 
@@ -201,131 +332,129 @@
                 <MudButton Variant="Variant.Text"
                            Color="Color.Default"
                            OnClick="Reset"
-                           Disabled="_isSubmitting">
+                           Disabled="vm.IsSubmitting">
                     Reset
                 </MudButton>
+
 
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Primary"
                            OnClick="Submit"
-                           Disabled="@(!_isValid || _isSubmitting)"
-                           Loading="_isSubmitting">
+                           Disabled="@(!(_form?.IsValid ?? false) || vm.IsSubmitting)"
+                           Loading="vm.IsSubmitting">
                     Submit
                 </MudButton>
+
             </MudStack>
         </MudForm>
 
-        @if (_submitted && _form?.IsValid == true)
+        @if (vm.Submitted && _form?.IsValid == true)
         {
             <MudDivider Class="my-4" />
             <MudText Typo="Typo.subtitle1" Class="mb-2">Submission Preview</MudText>
 
-
-            <MudTable T="FieldRow" Items="SummaryRows" Dense="true" Elevation="0" Hover="false" Bordered="false" Striped="false">
+            <MudTable T="KeyValuePair<string,string>" Items="vm.SummaryRows()" Dense="true" Elevation="0" Hover="false" Bordered="false" Striped="false">
                 <HeaderContent>
                     <MudTh>Field</MudTh>
                     <MudTh>Value</MudTh>
                 </HeaderContent>
-
                 <RowTemplate>
-                    <MudTd DataLabel="Field">@context.Field</MudTd>
+                    <MudTd DataLabel="Field">@context.Key</MudTd>
                     <MudTd DataLabel="Value">@context.Value</MudTd>
                 </RowTemplate>
             </MudTable>
 
+            <MudDivider Class="my-3" />
+
+            <MudText Typo="Typo.subtitle2" Class="mb-1">Item Totals</MudText>
+            <MudTable T="KeyValuePair<string,string>" Items="vm.ItemSummaryRows()" Dense="true" Elevation="0" Hover="false" Bordered="false" Striped="false">
+                <HeaderContent>
+                    <MudTh>Metric</MudTh>
+                    <MudTh>Value</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Metric">@context.Key</MudTd>
+                    <MudTd DataLabel="Value">@context.Value</MudTd>
+                </RowTemplate>
+            </MudTable>
         }
     </MudStack>
 </MudPaper>
 
 @code {
     private MudForm? _form;
-    private bool _isValid;
-    private bool _isSubmitting;
-    private bool _submitted;
-    private string? _serverError;
-    private readonly FinancialSurveyModel _model = new();
 
-    private void OnValidationChanged(MudForm form) => _isValid = form.IsValid;
+    // Use the current culture for parsing/formatting numbers in the interest converter
+    private readonly CultureInfo Culture = CultureInfo.CurrentCulture;
+
+    // ✅ Correct handler: receives 'bool valid'
+    private void OnValidationChanged(bool valid) => vm.IsValid = valid;
+
+    // Converter: shows the model's decimal (0..1) as a percent number (0..100) to the user,
+    // and converts the user's percent input back to decimal for the model.
+    private Converter<decimal?> PercentAsNumberConverter => new()
+    {
+        // User types a number (e.g., "5.5") -> store as decimal fraction (0.055)
+        GetFunc = input =>
+        {
+            if (string.IsNullOrWhiteSpace(input))
+                return (decimal?)null;
+
+            if (decimal.TryParse(input, NumberStyles.Number, Culture, out var percentValue))
+                return percentValue / 100m;
+
+            return (decimal?)null;
+        },
+
+        // Model has decimal fraction (e.g., 0.055) -> show "5.5" to the user
+        SetFunc = modelValue =>
+        {
+            if (modelValue is null)
+                return null;
+
+            var percent = modelValue.Value * 100m;
+            return percent.ToString("0.###", Culture);
+        }
+    };
+
+    protected override void OnInitialized()
+    {
+        vm.StateChanged += StateHasChanged;
+    }
 
     private async Task Submit()
     {
-        _serverError = null;
-        _submitted = false;
+        vm.ServerError = null;
+        vm.Submitted = false;
 
         if (_form is null)
             return;
 
         await _form.Validate();
+
+        // keep vm.IsValid in sync (optional but helpful)
+        vm.IsValid = _form.IsValid;
+
+        // force UI to re-evaluate Disabled based on _form?.IsValid
+        StateHasChanged();
+
         if (!_form.IsValid)
             return;
 
-        try
-        {
-            _isSubmitting = true;
-
-            // TODO: Persist data to your API/service
-            // await _api.SaveSurveyAsync(_model);
-
-            _submitted = true;
-        }
-        catch (Exception ex)
-        {
-            _serverError = "An unexpected error occurred while submitting. Please try again.";
-            Console.Error.WriteLine(ex);
-        }
-        finally
-        {
-            _isSubmitting = false;
-        }
+        await vm.SubmitAsync();
     }
 
     private void Reset()
     {
-        _serverError = null;
-        _submitted = false;
-
-        _model.Name = string.Empty;
-        _model.Age = null;
-        _model.Gender = null;
-        _model.AnnualIncome = null;
-        _model.TotalDebt = null;
-        _model.MonthlyDebtExpenses = null;
-        _model.MonthlyExpenses = null;
-        _model.CreditScore = null;
-
+        vm.Reset();
         _form?.ResetValidation();
+
+        // Optional: reflect reset validation into button state
+        vm.IsValid = false;
     }
 
-    private static string FormatCurrency(decimal? value)
-        => value.HasValue ? value.Value.ToString("C") : "-";
-
-    /// <summary>
-    /// Computes monthly Debt-to-Income: (MonthlyDebt) / (AnnualIncome / 12).
-    /// </summary>
-    private static decimal? ComputeDti(decimal? annualIncome, decimal? monthlyDebt)
+    public void Dispose()
     {
-        if (annualIncome is null || annualIncome <= 0 || monthlyDebt is null) return null;
-        var monthlyIncome = annualIncome.Value / 12m;
-        if (monthlyIncome <= 0) return null;
-        return monthlyDebt.Value / monthlyIncome;
+        vm.StateChanged -= StateHasChanged;
     }
-
-
-    private sealed record FieldRow(string Field, string Value);
-
-    private IEnumerable<FieldRow> SummaryRows => new[]
-    {
-        new FieldRow("Name", _model.Name ?? "-"),
-        new FieldRow("Age", _model.Age?.ToString() ?? "-"),
-        new FieldRow("Gender", _model.Gender ?? "-"),
-        new FieldRow("Annual Income", FormatCurrency(_model.AnnualIncome)),
-        new FieldRow("Total Debt", FormatCurrency(_model.TotalDebt)),
-        new FieldRow("Monthly Debt Expenses", FormatCurrency(_model.MonthlyDebtExpenses)),
-        new FieldRow("Monthly Expenses", FormatCurrency(_model.MonthlyExpenses)),
-        new FieldRow("Credit Score", _model.CreditScore?.ToString() ?? "-"),
-        new FieldRow(
-            "Estimated DTI (Monthly Debt / Monthly Income)",
-            ComputeDti(_model.AnnualIncome, _model.MonthlyDebtExpenses) is {} dti ? $"{dti:P1}" : "-")
-    };
-
 }
