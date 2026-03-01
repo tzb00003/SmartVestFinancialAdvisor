@@ -1,0 +1,4 @@
+﻿C:\Users\chpie\OneDrive\Desktop\Final project\SmartVest\SmartVestFinancialAdvisor\SmartVestFinancialAdvisor\SmartVestFinancialAdvisor.csproj : warning NU1510: PackageReference System.Text.Json will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary. [C:\Users\chpie\OneDrive\Desktop\Final project\SmartVest\SmartVestFinancialAdvisor\SmartVest.TestRunner\SmartVest.TestRunner.csproj]
+C:\Users\chpie\OneDrive\Desktop\Final project\SmartVest\SmartVestFinancialAdvisor\SmartVestFinancialAdvisor\SmartVestFinancialAdvisor.csproj : warning NU1510: PackageReference System.Text.Json will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+=== SmartVestFinancialAdvisor Test ===
+

@@ -1,5 +1,12 @@
 using MudBlazor.Services;
 using SmartVestFinancialAdvisor.Components;
+using SmartVestFinancialAdvisor.Core.Benchmarks;
+using SmartVestFinancialAdvisor.Infrastructure.Benchmarks;
+using SmartVestFinancialAdvisor.Infrastructure.Census;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using System;
+using System.IO;
 using SmartVestFinancialAdvisor.Components.ViewModels;
 using SmartVestFinancialAdvisor.Components.Services;
 
@@ -29,6 +36,11 @@ builder.Services.AddMudServices(options =>
 // {
 //     client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"]!);
 // });
+
+// REGISTER CENSUS AGENT SERVICES
+string dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "benchmarks.db");
+builder.Services.AddSingleton<SqliteBenchmarkProvider>(sp => new SqliteBenchmarkProvider(dbPath));
+builder.Services.AddHostedService<CensusBackgroundService>();
 
 var app = builder.Build();
 
