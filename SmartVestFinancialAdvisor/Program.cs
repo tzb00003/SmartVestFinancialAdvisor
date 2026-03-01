@@ -1,9 +1,5 @@
 using MudBlazor.Services;
 using SmartVestFinancialAdvisor.Components;
-<<<<<<< HEAD
-=======
-
->>>>>>> 1c8fcdb4e4533178f80b65f13cbde3137c0447bc
 using SmartVestFinancialAdvisor.Core.Benchmarks;
 using SmartVestFinancialAdvisor.Infrastructure.Benchmarks;
 using SmartVestFinancialAdvisor.Infrastructure.Census;
@@ -11,15 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.IO;
-<<<<<<< HEAD
 using SmartVestFinancialAdvisor.Components.ViewModels;
 using SmartVestFinancialAdvisor.Components.Services;
-=======
-
-using SmartVestFinancialAdvisor.Components.ViewModels;
-using SmartVestFinancialAdvisor.Components.Services;
-
->>>>>>> 1c8fcdb4e4533178f80b65f13cbde3137c0447bc
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,7 +57,7 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
-//app.MapRazorComponents<App>()
-//    .AddInteractiveServerRenderMode();
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
 
 app.Run();
