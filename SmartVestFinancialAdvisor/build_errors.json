@@ -1,0 +1,412 @@
+{
+  "$schema": "http://json.schemastore.org/sarif-1.0.0",
+  "version": "1.0.0",
+  "runs": [
+    {
+      "tool": {
+        "name": "Microsoft (R) Visual C# Compiler",
+        "version": "5.0.0.0",
+        "fileVersion": "5.0.0-2.25612.105 (44525024)",
+        "semanticVersion": "5.0.0",
+        "language": "en-US"
+      },
+      "results": [
+        {
+          "ruleId": "RZ1034",
+          "level": "error",
+          "message": "Found a malformed 'MudLayout' tag helper. Tag helpers must have a start and end tag or be self closing.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///C:/Users/chpie/OneDrive/Desktop/Final%20project/SmartVest/SmartVestFinancialAdvisor/SmartVestFinancialAdvisor/Components/Layout/MainLayout.razor",
+                "region": {
+                  "startLine": 12,
+                  "startColumn": 2,
+                  "endLine": 12,
+                  "endColumn": 11
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "RZ9981",
+          "level": "error",
+          "message": "Unexpected closing tag 'main' with no matching start tag.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///C:/Users/chpie/OneDrive/Desktop/Final%20project/SmartVest/SmartVestFinancialAdvisor/SmartVestFinancialAdvisor/Components/Layout/MainLayout.razor",
+                "region": {
+                  "startLine": 41,
+                  "startColumn": 5,
+                  "endLine": 41,
+                  "endColumn": 12
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "RZ9981",
+          "ruleKey": "RZ9981-001",
+          "level": "error",
+          "message": "Unexpected closing tag 'MudLayout' with no matching start tag.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///C:/Users/chpie/OneDrive/Desktop/Final%20project/SmartVest/SmartVestFinancialAdvisor/SmartVestFinancialAdvisor/Components/Layout/MainLayout.razor",
+                "region": {
+                  "startLine": 62,
+                  "startColumn": 1,
+                  "endLine": 62,
+                  "endColumn": 13
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "RZ1034",
+          "level": "error",
+          "message": "Found a malformed 'MudLayout' tag helper. Tag helpers must have a start and end tag or be self closing.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///C:/Users/chpie/OneDrive/Desktop/Final%20project/SmartVest/SmartVestFinancialAdvisor/SmartVestFinancialAdvisor/Components/Layout/MainLayout.razor",
+                "region": {
+                  "startLine": 62,
+                  "startColumn": 3,
+                  "endLine": 62,
+                  "endColumn": 12
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CS8618",
+          "level": "warning",
+          "message": "Non-nullable property 'Score' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///C:/Users/chpie/OneDrive/Desktop/Final%20project/SmartVest/SmartVestFinancialAdvisor/SmartVestFinancialAdvisor/Core/Constraints/Builder.cs",
+                "region": {
+                  "startLine": 53,
+                  "startColumn": 31,
+                  "endLine": 53,
+                  "endColumn": 36
+                }
+              }
+            }
+          ],
+          "relatedLocations": [
+            {
+              "physicalLocation": {
+                "uri": "file:///C:/Users/chpie/OneDrive/Desktop/Final%20project/SmartVest/SmartVestFinancialAdvisor/SmartVestFinancialAdvisor/Core/Constraints/Builder.cs",
+                "region": {
+                  "startLine": 53,
+                  "startColumn": 31,
+                  "endLine": 53,
+                  "endColumn": 36
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CS8618",
+          "level": "warning",
+          "message": "Non-nullable property 'Constraints' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///C:/Users/chpie/OneDrive/Desktop/Final%20project/SmartVest/SmartVestFinancialAdvisor/SmartVestFinancialAdvisor/Core/Constraints/Builder.cs",
+                "region": {
+                  "startLine": 55,
+                  "startColumn": 37,
+                  "endLine": 55,
+                  "endColumn": 48
+                }
+              }
+            }
+          ],
+          "relatedLocations": [
+            {
+              "physicalLocation": {
+                "uri": "file:///C:/Users/chpie/OneDrive/Desktop/Final%20project/SmartVest/SmartVestFinancialAdvisor/SmartVestFinancialAdvisor/Core/Constraints/Builder.cs",
+                "region": {
+                  "startLine": 55,
+                  "startColumn": 37,
+                  "endLine": 55,
+                  "endColumn": 48
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CS8618",
+          "level": "warning",
+          "message": "Non-nullable property 'SubScores' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///C:/Users/chpie/OneDrive/Desktop/Final%20project/SmartVest/SmartVestFinancialAdvisor/SmartVestFinancialAdvisor/Core/Scoring/ScoreResult.cs",
+                "region": {
+                  "startLine": 27,
+                  "startColumn": 40,
+                  "endLine": 27,
+                  "endColumn": 49
+                }
+              }
+            }
+          ],
+          "relatedLocations": [
+            {
+              "physicalLocation": {
+                "uri": "file:///C:/Users/chpie/OneDrive/Desktop/Final%20project/SmartVest/SmartVestFinancialAdvisor/SmartVestFinancialAdvisor/Core/Scoring/ScoreResult.cs",
+                "region": {
+                  "startLine": 27,
+                  "startColumn": 40,
+                  "endLine": 27,
+                  "endColumn": 49
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CS0414",
+          "level": "warning",
+          "message": "The field 'Home.amount' is assigned but its value is never used",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///C:/Users/chpie/OneDrive/Desktop/Final%20project/SmartVest/SmartVestFinancialAdvisor/SmartVestFinancialAdvisor/Components/Pages/Home.razor",
+                "region": {
+                  "startLine": 48,
+                  "startColumn": 12,
+                  "endLine": 48,
+                  "endColumn": 18
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 3
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'MapReaderToBenchmark' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///C:/Users/chpie/OneDrive/Desktop/Final%20project/SmartVest/SmartVestFinancialAdvisor/SmartVestFinancialAdvisor/Infrastructure/Benchmarks/SqliteBenchmarkProvider.cs",
+                "region": {
+                  "startLine": 108,
+                  "startColumn": 33,
+                  "endLine": 108,
+                  "endColumn": 53
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'CalculateIncomeScore' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///C:/Users/chpie/OneDrive/Desktop/Final%20project/SmartVest/SmartVestFinancialAdvisor/SmartVestFinancialAdvisor/Core/Scoring/ScoreCalculator.cs",
+                "region": {
+                  "startLine": 54,
+                  "startColumn": 25,
+                  "endLine": 54,
+                  "endColumn": 45
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'CalculateSavingsScore' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///C:/Users/chpie/OneDrive/Desktop/Final%20project/SmartVest/SmartVestFinancialAdvisor/SmartVestFinancialAdvisor/Core/Scoring/ScoreCalculator.cs",
+                "region": {
+                  "startLine": 61,
+                  "startColumn": 25,
+                  "endLine": 61,
+                  "endColumn": 46
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'CalculateDebtScore' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///C:/Users/chpie/OneDrive/Desktop/Final%20project/SmartVest/SmartVestFinancialAdvisor/SmartVestFinancialAdvisor/Core/Scoring/ScoreCalculator.cs",
+                "region": {
+                  "startLine": 68,
+                  "startColumn": 25,
+                  "endLine": 68,
+                  "endColumn": 43
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'ValidateWeights' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///C:/Users/chpie/OneDrive/Desktop/Final%20project/SmartVest/SmartVestFinancialAdvisor/SmartVestFinancialAdvisor/Core/Scoring/ScoreCalculator.cs",
+                "region": {
+                  "startLine": 80,
+                  "startColumn": 22,
+                  "endLine": 80,
+                  "endColumn": 37
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'ParseCensusResponse' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///C:/Users/chpie/OneDrive/Desktop/Final%20project/SmartVest/SmartVestFinancialAdvisor/SmartVestFinancialAdvisor/Infrastructure/Census/CensusIngestionAgent.cs",
+                "region": {
+                  "startLine": 89,
+                  "startColumn": 39,
+                  "endLine": 89,
+                  "endColumn": 58
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        }
+      ],
+      "rules": {
+        "CA1822": {
+          "id": "CA1822",
+          "shortDescription": "Mark members as static",
+          "fullDescription": "Members that do not access instance data or call instance methods can be marked as static. After you mark the methods as static, the compiler will emit nonvirtual call sites to these members. This can give you a measurable performance gain for performance-sensitive code.",
+          "defaultLevel": "note",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1822",
+          "properties": {
+            "category": "Performance",
+            "isEnabledByDefault": true,
+            "tags": [
+              "PortedFromFxCop",
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        },
+        "CS0414": {
+          "id": "CS0414",
+          "shortDescription": "Field is assigned but its value is never used",
+          "defaultLevel": "warning",
+          "helpUri": "https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k(CS0414)",
+          "properties": {
+            "category": "Compiler",
+            "isEnabledByDefault": true,
+            "tags": [
+              "Compiler",
+              "Telemetry"
+            ]
+          }
+        },
+        "CS8618": {
+          "id": "CS8618",
+          "shortDescription": "Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.",
+          "defaultLevel": "warning",
+          "helpUri": "https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k(CS8618)",
+          "properties": {
+            "category": "Compiler",
+            "isEnabledByDefault": true,
+            "tags": [
+              "Compiler",
+              "Telemetry"
+            ]
+          }
+        },
+        "RZ1034": {
+          "id": "RZ1034",
+          "shortDescription": "Found a malformed 'MudLayout' tag helper. Tag helpers must have a start and end tag or be self closing.",
+          "defaultLevel": "error",
+          "properties": {
+            "category": "Razor",
+            "isEnabledByDefault": true
+          }
+        },
+        "RZ9981": {
+          "id": "RZ9981",
+          "shortDescription": "Unexpected closing tag 'main' with no matching start tag.",
+          "defaultLevel": "error",
+          "properties": {
+            "category": "Razor",
+            "isEnabledByDefault": true
+          }
+        },
+        "RZ9981-001": {
+          "id": "RZ9981",
+          "shortDescription": "Unexpected closing tag 'MudLayout' with no matching start tag.",
+          "defaultLevel": "error",
+          "properties": {
+            "category": "Razor",
+            "isEnabledByDefault": true
+          }
+        }
+      }
+    }
+  ]
+}
