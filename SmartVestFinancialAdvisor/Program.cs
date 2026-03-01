@@ -1,6 +1,5 @@
 using MudBlazor.Services;
 using SmartVestFinancialAdvisor.Components;
-<<<<<<< HEAD
 using SmartVestFinancialAdvisor.Core.Benchmarks;
 using SmartVestFinancialAdvisor.Infrastructure.Benchmarks;
 using SmartVestFinancialAdvisor.Infrastructure.Census;
@@ -8,10 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.IO;
-=======
 using SmartVestFinancialAdvisor.Components.ViewModels;
 using SmartVestFinancialAdvisor.Components.Services;
->>>>>>> origin/Test
 
 var builder = WebApplication.CreateBuilder(args);
 

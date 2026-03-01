@@ -1,21 +1,23 @@
 ﻿@inherits LayoutComponentBase
 @using MudBlazor
-<<<<<<< HEAD
+@inject IDialogService DialogService
+
 <MudThemeProvider />
 <MudSnackbarProvider />
-<MudDialogProvider />
+<!-- Ensure interactivity is enabled -->
+<MudDialogProvider @rendermode="InteractiveServer" />
 <MudPopoverProvider />
 
 <MudLayout>
     <MudAppBar>
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="DrawerToggle" />
-        
+
         <MudSpacer />
-         @*Login and Signup buttons*@
-        <MudButton Variant="Variant.Filled" Color="Color.Primary">Login</MudButton> 
-        
+        @*Login and Signup buttons*@
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenTestDialog">Login</MudButton> 
+
         <MudButton Variant="Variant.Filled" Color="Color.Secondary">Sign Up</MudButton>
-        
+
     </MudAppBar> 
     <MudDrawer @bind-Open="@_drawerOpen" Elevation="24" Anchor="Anchor.Left">
         <MudDrawerHeader>
@@ -25,27 +27,11 @@
         </MudDrawerHeader>
         <NavMenu />
     </MudDrawer>
-    
+
     <MudMainContent>
-=======
-@inject IDialogService DialogService
-
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
-    <main>
-        <div class="top-row px-4">
-            <!-- 1. Use @onclick and prevent default anchor behavior -->
-            <a @onclick="OpenTestDialog" style="cursor:pointer" target="_blank">Sign In</a>
-        </div>
-
->>>>>>> origin/Test
         <article class="content px-4">
             @Body 
         </article>
-<<<<<<< HEAD
     </MudMainContent>
 </MudLayout>
 
@@ -55,20 +41,15 @@
     <span class="dismiss">🗙</span>
 </div>
 
-=======
-    </main>
-
-    <MudThemeProvider />
-    <MudPopoverProvider />
-
-    <!-- 2. Ensure interactivity is enabled -->
-    <MudDialogProvider @rendermode="InteractiveServer" />
-    <MudSnackbarProvider />
-</div>
-
->>>>>>> origin/Test
 @code {
-    // 3. The method must exist here
+    bool _drawerOpen = true;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    // The method must exist here
     private async Task OpenTestDialog()
     {
         var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true, MaxWidth = MaxWidth.Small };
