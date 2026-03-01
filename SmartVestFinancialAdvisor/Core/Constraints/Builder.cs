@@ -23,7 +23,10 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
             _scoreCalculator = scoreCalculator;
             _advisorEngine = advisorEngine;
         }
-
+        /*
+         * Add a Getscore function
+         * 
+         */
         public async Task<BuildResult> Build(FinancialProfile profile)
         {
             // 1. Map to ClientProfile
