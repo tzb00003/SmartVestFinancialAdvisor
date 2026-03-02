@@ -1,0 +1,29 @@
+﻿=== SmartVestFinancialAdvisor Test ===
+
+
+--- Census Data Agent ---
+Running ingestion (this calls the live Census API)...
+[CensusAgent] Starting multi-table ingestion for 2022 ACS 1-Year Estimates...
+[CensusAgent] Records processed and merged: 204
+[CensusAgent] Ingestion complete.
+--- SubScores ---
+Income Stability: Raw=28.799884800460798156807372770, Weight=0.40, Weighted=11.519953920184319262722949108
+Savings Health: Raw=40.0, Weight=0.30, Weighted=12.000
+Debt Load: Raw=75.00, Weight=0.30, Weighted=22.5000
+
+Total Score: 46.019953920184319262722949108
+
+Client Category: Balanced
+Category Rules: Stock=0.5, Bond=0.4, Cash=0.1
+
+--- Portfolio Constraints ---
+Max Stock Allocation: 0.5
+Max Bond Allocation: 0.4
+Max Cash Allocation: 0.1
+
+--- Benchmark Check ---
+Found Benchmark for NY, Age 30: Median=$92270, Avg=$92270
+
+Adjusted Category Check: Conservative
+
+=== Test Complete ===
