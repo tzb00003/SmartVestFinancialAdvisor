@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using SmartVestFinancialAdvisor.Components.Models;
 using SmartVestFinancialAdvisor.Components.Services;
+using SmartVestFinancialAdvisor.Core.Constraints;
 
 namespace SmartVestFinancialAdvisor.Components.ViewModels
 {
@@ -18,6 +19,8 @@ namespace SmartVestFinancialAdvisor.Components.ViewModels
         }
 
         public FinancialSurveyModel Model { get; } = new();
+
+        public BuildResult? AdvisorResult { get; private set; }
 
         private bool _isValid;
         public bool IsValid
@@ -80,6 +83,8 @@ namespace SmartVestFinancialAdvisor.Components.ViewModels
             // Start with NO default empty row to avoid blocking form validity.
             Model.Items.Clear();
 
+            AdvisorResult = null;
+
             OnStateChanged();
         }
 
@@ -98,7 +103,7 @@ namespace SmartVestFinancialAdvisor.Components.ViewModels
 
                 if (_service is not null)
                 {
-                    await _service.SaveAsync(Model, CancellationToken.None);
+                    AdvisorResult = await _service.SaveAsync(Model, CancellationToken.None);
                 }
 
                 Submitted = true;

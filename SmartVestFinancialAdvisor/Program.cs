@@ -3,6 +3,10 @@ using SmartVestFinancialAdvisor.Components;
 using SmartVestFinancialAdvisor.Core.Benchmarks;
 using SmartVestFinancialAdvisor.Infrastructure.Benchmarks;
 using SmartVestFinancialAdvisor.Infrastructure.Census;
+using SmartVestFinancialAdvisor.Core.Scoring;
+using SmartVestFinancialAdvisor.Core.Constraints;
+using SmartVestFinancialAdvisor.Core.Agents;
+using SmartVestFinancialAdvisor.Core.Financial;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
@@ -19,7 +23,20 @@ builder.Services.AddRazorComponents()
 // ViewModel (scoped per circuit)
 builder.Services.AddScoped<FinancialSurveyViewModel>();
 
-// Optional: persistence service (VM will use it if present)
+// Core Logic Services
+builder.Services.AddScoped<FinancialAggregationService>();
+builder.Services.AddScoped<ScoreCalculator>();
+builder.Services.AddScoped<AdvisorEngine>(sp =>
+{
+    var engine = new AdvisorEngine();
+    engine.RegisterAgent(new BenchmarkAgent());
+    engine.RegisterAgent(new PortfolioAgent());
+    engine.RegisterAgent(new SavingsAgent());
+    return engine;
+});
+builder.Services.AddScoped<Builder>();
+
+// Survey Service (Maps UI -> Core)
 builder.Services.AddScoped<IFinancialSurveyService, FinancialSurveyService>();
 
 // Register MudBlazor services (required for Mud components like MudTextField)
@@ -40,6 +57,7 @@ builder.Services.AddMudServices(options =>
 // REGISTER CENSUS AGENT SERVICES
 string dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "benchmarks.db");
 builder.Services.AddSingleton<SqliteBenchmarkProvider>(sp => new SqliteBenchmarkProvider(dbPath));
+builder.Services.AddSingleton<IBenchmarkProvider>(sp => sp.GetRequiredService<SqliteBenchmarkProvider>());
 builder.Services.AddHostedService<CensusBackgroundService>();
 
 var app = builder.Build();
