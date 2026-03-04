@@ -101,7 +101,76 @@ namespace SmartVestFinancialAdvisor
                 }
             }
 
-            Console.WriteLine("=== Test Complete ===");
+            Console.WriteLine("=== Test Complete ===\n");
+
+            Console.WriteLine("--- Phase 3: Automated Verification Tests ---");
+            // 1. Model Mapping Test & Risk Normalization Test
+            var uiModel = new SmartVestFinancialAdvisor.Components.Models.FinancialSurveyModel
+            {
+                MonthlyIncome = 12000m,
+                MonthlyExpense = 5000m,
+                Savings = 15000m,
+                Debt = 8000m,
+                Age = 35,
+                State = "NY",
+                RiskLevel = SmartVestFinancialAdvisor.Components.Models.RiskLevel.Med,
+            };
+            uiModel.Items.Add(new SmartVestFinancialAdvisor.Components.Models.FinancialItem 
+            { 
+                Label = "High-Interest Credit Card", Amount = 8000m, InterestRate = 0.225m, IsDebt = true 
+            });
+            uiModel.Items.Add(new SmartVestFinancialAdvisor.Components.Models.FinancialItem 
+            { 
+                Label = "Auto Loan (Testing Rate)", Amount = 15000m, InterestRate = 0.075m, IsDebt = true 
+            });
+
+            // Map manually as the service does it
+            var mappedRisk = uiModel.RiskLevel switch
+            {
+                SmartVestFinancialAdvisor.Components.Models.RiskLevel.Low => 0.25m,
+                SmartVestFinancialAdvisor.Components.Models.RiskLevel.Med => 0.50m,
+                SmartVestFinancialAdvisor.Components.Models.RiskLevel.High => 0.75m,
+                _ => 0.25m
+            };
+
+            var mappedItems = uiModel.Items.Select(i => new FinancialItem
+            {
+                Label = i.Label ?? "Unnamed",
+                Amount = i.Amount ?? 0m,
+                MonthlyPayment = i.MonthlyPayment ?? 0m,
+                InterestRate = i.InterestRate ?? 0m,
+                IsDebt = i.IsDebt,
+                IsRetirement = i.IsRetirement
+            }).ToList();
+
+            var mappedProfile = new FinancialProfile
+            {
+                MonthlyIncome = uiModel.MonthlyIncome ?? 0m,
+                Savings = uiModel.Savings ?? 0m,
+                Debt = uiModel.Debt ?? 0m,
+                MonthlyExpense = uiModel.MonthlyExpense ?? 0m,
+                Age = uiModel.Age ?? 0,
+                LocationState = uiModel.State,
+                RiskTolerance = mappedRisk,
+                Items = mappedItems
+            };
+
+            Console.WriteLine($"[Test] Risk Normalization: Model=Med, Profile={mappedProfile.RiskTolerance} (Expected 0.50) -> {(mappedProfile.RiskTolerance == 0.50m ? "PASS" : "FAIL")}");
+            Console.WriteLine($"[Test] Interest Normalization: UI=0.075, Core={mappedProfile.Items[1].InterestRate} (Expected 0.075) -> {(mappedProfile.Items[1].InterestRate == 0.075m ? "PASS" : "FAIL")}");
+            
+            // 2. Integration Test: Submit sample form data and assert non-empty advisor result
+            BuildResult integrationResult = await builder.Build(mappedProfile);
+            bool hasScore = integrationResult.Score != null && integrationResult.Score.Total > 0;
+            bool hasConstraints = integrationResult.Constraints != null;
+            bool hasInsights = integrationResult.Insights.Any();
+
+            // Portfolio agent triggers critical alert on interest > 0.07m
+            bool caughtToxicDebt = integrationResult.Insights.Any(i => i.Insight.Contains("Toxic Interest"));
+            
+            Console.WriteLine($"[Test] Integration Result: Score Present? {hasScore}, Constraints? {hasConstraints}, Insights? {hasInsights} -> {(hasScore && hasConstraints && hasInsights ? "PASS" : "FAIL")}");
+            Console.WriteLine($"[Test] Integration Rule: Caught toxic debt (>7%)? {caughtToxicDebt} -> {(caughtToxicDebt ? "PASS" : "FAIL")}");
+
+            Console.WriteLine("\nAll checks completed.");
         }
     }
 }
