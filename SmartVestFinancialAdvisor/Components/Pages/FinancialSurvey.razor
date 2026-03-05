@@ -25,7 +25,7 @@
                 <!-- Monthly Income -->
                 <MudItem xs="12" md="6">
                     <MudNumericField T="decimal?"
-                                     @bind-Value="vm.Model.MonthlyIncome"
+                    @bind-Value="vm.Model.MonthlyIncome"
                                      For="@(() => vm.Model.MonthlyIncome)"
                                      Label="Monthly Income (Gross)"
                                      Placeholder="e.g., 7,500"
@@ -50,7 +50,7 @@
                 <!-- Savings -->
                 <MudItem xs="12" md="6">
                     <MudNumericField T="decimal?"
-                                     @bind-Value="vm.Model.Savings"
+                    @bind-Value="vm.Model.Savings"
                                      For="@(() => vm.Model.Savings)"
                                      Label="Savings (Liquid)"
                                      Placeholder="e.g., 25,000"
@@ -75,7 +75,7 @@
                 <!-- Total Debt Payments (Monthly) -->
                 <MudItem xs="12" md="6">
                     <MudNumericField T="decimal?"
-                                     @bind-Value="vm.Model.Debt"
+                    @bind-Value="vm.Model.Debt"
                                      For="@(() => vm.Model.Debt)"
                                      Label="Debt Payments (Monthly)"
                                      Placeholder="e.g., 1,200"
@@ -100,7 +100,7 @@
                 <!-- Monthly Living Expenses -->
                 <MudItem xs="12" md="6">
                     <MudNumericField T="decimal?"
-                                     @bind-Value="vm.Model.MonthlyExpense"
+                    @bind-Value="vm.Model.MonthlyExpense"
                                      For="@(() => vm.Model.MonthlyExpense)"
                                      Label="Monthly Living Expenses"
                                      Placeholder="e.g., 2,800"
@@ -125,7 +125,7 @@
                 <!-- Risk Level -->
                 <MudItem xs="12" md="6">
                     <MudSelect T="RiskLevel"
-                               @bind-Value="vm.Model.RiskLevel"
+                    @bind-Value="vm.Model.RiskLevel"
                                For="@(() => vm.Model.RiskLevel)"
                                Label="Risk Level"
                                Variant="Variant.Outlined"
@@ -141,7 +141,7 @@
                 <!-- Age -->
                 <MudItem xs="12" md="6">
                     <MudNumericField T="int?"
-                                     @bind-Value="vm.Model.Age"
+                    @bind-Value="vm.Model.Age"
                                      For="@(() => vm.Model.Age)"
                                      Label="Age"
                                      Placeholder="e.g., 35"
@@ -160,7 +160,7 @@
                 <!-- State -->
                 <MudItem xs="12" md="6">
                     <MudSelect T="string"
-                               @bind-Value="vm.Model.State"
+                    @bind-Value="vm.Model.State"
                                For="@(() => vm.Model.State)"
                                Label="State"
                                Variant="Variant.Outlined"
@@ -172,7 +172,7 @@
                                ToStringFunc="@(s => s)">
                         @foreach (var s in vm.States)
                         {
-                            <MudSelectItem Value="@s">@s</MudSelectItem>
+                                <MudSelectItem Value="@s">@s</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
@@ -212,7 +212,7 @@
 
                         <MudTd DataLabel="Amount" Class="w-32">
                             <MudNumericField T="decimal?"
-                                             @bind-Value="@context.Amount"
+                            @bind-Value="@context.Amount"
                                              Variant="Variant.Outlined"
                                              Margin="Margin.Dense"
                                              Min="0"
@@ -230,7 +230,7 @@
 
                         <MudTd DataLabel="Monthly Payment" Class="w-32">
                             <MudNumericField T="decimal?"
-                                             @bind-Value="@context.MonthlyPayment"
+                            @bind-Value="@context.MonthlyPayment"
                                              Variant="Variant.Outlined"
                                              Margin="Margin.Dense"
                                              Min="0"
@@ -249,7 +249,7 @@
                         <!-- Interest Rate with converter (user enters 5.5 meaning 5.5%) -->
                         <MudTd DataLabel="Interest Rate" Class="w-28">
                             <MudNumericField T="decimal?"
-                                             @bind-Value="@context.InterestRate"
+                            @bind-Value="@context.InterestRate"
                                              Variant="Variant.Outlined"
                                              Margin="Margin.Dense"
                                              Min="0"
@@ -270,7 +270,7 @@
 
                         <MudTd DataLabel="Is Debt" Class="text-center">
                             <MudCheckBox T="bool"
-                                         @bind-Checked="@context.IsDebt"
+                            @bind-Checked="@context.IsDebt"
                                          Immediate="true"
                                          For="@(() => context.IsDebt)"
                                          AriaLabel="Mark as debt" />
@@ -278,7 +278,7 @@
 
                         <MudTd DataLabel="Is Retirement" Class="text-center">
                             <MudCheckBox T="bool"
-                                         @bind-Checked="@context.IsRetirement"
+                            @bind-Checked="@context.IsRetirement"
                                          Disabled="@context.IsDebt"
                                          Immediate="true"
                                          For="@(() => context.IsRetirement)"
@@ -323,9 +323,9 @@
 
             @if (!string.IsNullOrWhiteSpace(vm.ServerError))
             {
-                <MudAlert Severity="Severity.Error" Dense="true" Class="mt-2">
+                    <MudAlert Severity="Severity.Error" Dense="true" Class="mt-2">
                     @vm.ServerError
-                </MudAlert>
+                    </MudAlert>
             }
 
             <MudStack Direction="Row" Spacing="2" Class="mt-4">
@@ -348,35 +348,103 @@
             </MudStack>
         </MudForm>
 
-        @if (vm.Submitted && _form?.IsValid == true)
+        @if (vm.Submitted && _form?.IsValid == true && vm.AdvisorResult != null)
         {
-            <MudDivider Class="my-4" />
-            <MudText Typo="Typo.subtitle1" Class="mb-2">Submission Preview</MudText>
+            var res = vm.AdvisorResult;
+                <MudDivider Class="my-6" />
 
-            <MudTable T="KeyValuePair<string,string>" Items="vm.SummaryRows()" Dense="true" Elevation="0" Hover="false" Bordered="false" Striped="false">
-                <HeaderContent>
-                    <MudTh>Field</MudTh>
-                    <MudTh>Value</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Field">@context.Key</MudTd>
-                    <MudTd DataLabel="Value">@context.Value</MudTd>
-                </RowTemplate>
-            </MudTable>
+                <!-- Headline / Score -->
+                <MudStack Direction="Row" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <div>
+                        <MudText Typo="Typo.h5" Color="Color.Primary">Your Financial Analysis</MudText>
+                        <MudText Typo="Typo.subtitle1" Color="Color.Tertiary">Category: @res.Category</MudText>
+                    </div>
+                    <div>
+                    <MudText Typo="Typo.h3" Align="Align.Right">@( (int)Math.Round(Convert.ToDouble(res.Score.Total)) )<MudText Typo="Typo.h6" Inline="true">/100</MudText></MudText>
+                        <MudText Typo="Typo.caption" Align="Align.Right" Style="display:block;">Total Score</MudText>
+                    </div>
+                </MudStack>
 
-            <MudDivider Class="my-3" />
+                <MudGrid Class="mt-4">
+                    <!-- SubScores -->
+                    <MudItem xs="12" md="6">
+                        <MudCard Elevation="0" Outlined="true">
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    <MudText Typo="Typo.h6">Score Details</MudText>
+                                </CardHeaderContent>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                <MudTable Items="res.Score.SubScores" Dense="true" Elevation="0" Hover="true">
+                                    <HeaderContent>
+                                        <MudTh>Area</MudTh>
+                                        <MudTh Style="text-align:right">Score</MudTh>
+                                        <MudTh Style="text-align:right">Weight</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate Context="sub">
+                                        <MudTd DataLabel="Area">@sub.Name</MudTd>
+                                        <MudTd DataLabel="Score" Style="text-align:right">@sub.RawScore.ToString("F0") / 100</MudTd>
+                                        <MudTd DataLabel="Weight" Style="text-align:right">@sub.Weight.ToString("P0")</MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
 
-            <MudText Typo="Typo.subtitle2" Class="mb-1">Item Totals</MudText>
-            <MudTable T="KeyValuePair<string,string>" Items="vm.ItemSummaryRows()" Dense="true" Elevation="0" Hover="false" Bordered="false" Striped="false">
-                <HeaderContent>
-                    <MudTh>Metric</MudTh>
-                    <MudTh>Value</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Metric">@context.Key</MudTd>
-                    <MudTd DataLabel="Value">@context.Value</MudTd>
-                </RowTemplate>
-            </MudTable>
+                    <!-- Recommended Allocations -->
+                    <MudItem xs="12" md="6">
+                        <MudCard Elevation="0" Outlined="true">
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    <MudText Typo="Typo.h6">Recommended Allocation</MudText>
+                                </CardHeaderContent>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>
+                                        <MudText><b>Stocks:</b> @res.Constraints.MaxStockAllocation.ToString("P0")</MudText>
+                                    </MudListItem>
+                                    <MudListItem>
+                                        <MudText><b>Bonds:</b> @res.Constraints.MaxBondAllocation.ToString("P0")</MudText>
+                                    </MudListItem>
+                                    <MudListItem>
+                                        <MudText><b>Cash:</b> @res.Constraints.MaxCashAllocation.ToString("P0")</MudText>
+                                    </MudListItem>
+                                </MudList>
+                                <MudText Typo="Typo.caption" Class="mt-2" Style="display:block">Based on Risk Tolerance: @res.Constraints.RiskTolerance.ToString("P0")</MudText>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                </MudGrid>
+
+                <!-- Insights / Recommendations -->
+            @if (res.Insights.Any())
+            {
+                        <MudText Typo="Typo.h6" Class="mt-6 mb-2">Key Insights &amp; Recommendations</MudText>
+                        <MudStack Spacing="3">
+                    @foreach (var insight in res.Insights)
+                    {
+                                    <!-- Changed from smartvestfinancialadvisor namespace reference to avoid potential compilation issues if namespaces mismatch; we can just rely on the existing imported agents or use full path if needed, but the impact level is an enum, so we can check it -->
+                        var severity = insight.Impact.ToString() switch
+                        {
+                            "Critical" => Severity.Error,
+                            "Warning" => Severity.Warning,
+                            _ => Severity.Info
+                        };
+
+                                    <MudAlert Severity="@severity" Variant="Variant.Filled" Dense="true" Class="mb-2">
+                                        <MudText Typo="Typo.subtitle2">@insight.AgentName - @insight.Insight</MudText>
+                                        <MudText Typo="Typo.body2">@insight.Recommendation</MudText>
+                                    </MudAlert>
+                    }
+                        </MudStack>
+            }
+            else
+            {
+                        <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Class="mt-6">
+                            No critical issues detected. Stay the course!
+                        </MudAlert>
+            }
         }
     </MudStack>
 </MudPaper>
@@ -393,29 +461,29 @@
     // Converter: shows the model's decimal (0..1) as a percent number (0..100) to the user,
     // and converts the user's percent input back to decimal for the model.
     private Converter<decimal?> PercentAsNumberConverter => new()
-    {
-        // User types a number (e.g., "5.5") -> store as decimal fraction (0.055)
-        GetFunc = input =>
         {
-            if (string.IsNullOrWhiteSpace(input))
+            // User types a number (e.g., "5.5") -> store as decimal fraction (0.055)
+            GetFunc = input =>
+            {
+                if (string.IsNullOrWhiteSpace(input))
+                    return (decimal?)null;
+
+                if (decimal.TryParse(input, NumberStyles.Number, Culture, out var percentValue))
+                    return percentValue / 100m;
+
                 return (decimal?)null;
+            },
 
-            if (decimal.TryParse(input, NumberStyles.Number, Culture, out var percentValue))
-                return percentValue / 100m;
+            // Model has decimal fraction (e.g., 0.055) -> show "5.5" to the user
+            SetFunc = modelValue =>
+            {
+                if (modelValue is null)
+                    return null;
 
-            return (decimal?)null;
-        },
-
-        // Model has decimal fraction (e.g., 0.055) -> show "5.5" to the user
-        SetFunc = modelValue =>
-        {
-            if (modelValue is null)
-                return null;
-
-            var percent = modelValue.Value * 100m;
-            return percent.ToString("0.###", Culture);
-        }
-    };
+                var percent = modelValue.Value * 100m;
+                return percent.ToString("0.###", Culture);
+            }
+        };
 
     protected override void OnInitialized()
     {
