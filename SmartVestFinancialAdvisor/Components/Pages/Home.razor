@@ -1,140 +1,144 @@
-﻿@page "/"
-@page "/home"
+﻿@page "/home"
 @using MudBlazor
-@using System.Collections.Generic
 @using System.Linq
 @using SmartVestFinancialAdvisor.Components
-@inject IDialogService DialogService
-
+@using SmartVestFinancialAdvisor.Components.ViewModels
+@using SmartVestFinancialAdvisor.Components.Models
+@using SmartVestFinancialAdvisor.Components.Services
+@inject FinancialSurveyViewModel vm
+@inject IRecommendationCatalog Catalog
+@inject NavigationManager Nav
+@implements IDisposable
 
 <PageTitle>Home</PageTitle>
+
 <MudGrid Spacing="3">
+    <!-- Header -->
     <MudItem xs="12">
         <MudPaper Class="pa-4">
-            <MudText Typo="Typo.h2" GutterBottom="true" Color="Color.Dark">Welcome to SmartVest Financial Advisor</MudText>
+            <MudText Typo="Typo.h2" GutterBottom="true" Color="Color.Dark">
+                Welcome to SmartVest Financial Advisor
+            </MudText>
             <MudText Typo="Typo.body1">
                 This application is designed to help you manage your finances effectively and make informed investment decisions.
             </MudText>
         </MudPaper>
     </MudItem>
 
-    <!-- Top summary fields -->
-    <MudItem xs="12" md="6">
-        <MudPaper Class="pa-4" Style="background-color: #f2f2f2;">
-            <MudText Typo="Typo.h6">Financial Portfolio</MudText>
-            <MudDataGrid Items="@Suggestions.Take(4)" Class="grid-with-borders">
-                <Columns>
-                    <PropertyColumn Property="x => x.type" Title="Investment Type" />
-                    <PropertyColumn Property="x => x.risk" Title="Risk Level"/>
-                    <PropertyColumn Property="x => x.rec" Title="Recommendation Level"/>
-                    <PropertyColumn Property="x => x.info" Title="More Information"/>
-                </Columns>
-            </MudDataGrid>
-        </MudPaper>
+    <!-- Empty state (no score / no recommendations yet) -->
+    @if (vm?.AdvisorResult is null)
+    {
+        <MudItem xs="12">
+            <MudPaper Class="pa-6 d-flex flex-column align-center justify-center" Style="text-align:center;">
+                <MudIcon Icon="@Icons.Material.Filled.Assessment" Size="Size.Large" Color="Color.Primary" />
+                <MudText Typo="Typo.h5" Class="mt-2">No score or results </MudText>
+                <MudText Typo="Typo.body2" Class="mt-1">
+                    Take the quick financial survey to generate your score and personalized recommendations.
+                </MudText>
+                <MudButton Class="mt-3" Variant="Variant.Filled" Color="Color.Primary" Href="/financial-survey">
+                    Start the survey
+                </MudButton>
+            </MudPaper>
+        </MudItem>
+    }
+    else
+    {
+        <!-- Score card (left on desktop) -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4">
+                <!-- New param CollapsibleOnMobile makes breakdown & distribution collapsible on mobile -->
+                <FinancialAnalysisPanel Result="vm.AdvisorResult"  />
+            </MudPaper>
+        </MudItem>
 
-    </MudItem>
+        <!-- Recommendations (right on desktop) -->
+        @if (Recommendations.Any())
+        {
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4" Style="background-color: #f2f2f2;">
+                    <MudText Typo="Typo.h6">Financial Portfolio</MudText>
 
+                    <MudTable Items="@Recommendations.Take(4).ToList()"
+                              Dense="true"
+                              Hover="true"
+                              Bordered="true"
+                              Elevation="0"
+                              Class="grid-with-borders">
 
-    <!-- Full width quick actions -->
+                        <HeaderContent>
+                            <MudTh>Investment Type</MudTh>
+                            <MudTh>Risk Level</MudTh>
+                            <MudTh>Recommendation Level</MudTh>
+                            <MudTh>More Information</MudTh>
+                        </HeaderContent>
+
+                        <RowTemplate Context="rec">
+                            <MudTd DataLabel="Investment Type">@rec.Type</MudTd>
+                            <MudTd DataLabel="Risk Level">@rec.Risk</MudTd>
+                            <MudTd DataLabel="Recommendation Level">@rec.RecDisplay</MudTd>
+                            <MudTd DataLabel="More Information">
+                                @if (!string.IsNullOrWhiteSpace(rec?.Link))
+                                {
+                                    <MudLink Href="@rec.Link" Target="_blank" Color="Color.Primary">
+                                        Learn more
+                                    </MudLink>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(rec?.Info))
+                                {
+                                    <MudText Color="Color.Secondary">@rec.Info</MudText>
+                                }
+                                else
+                                {
+                                    <MudText Color="Color.Secondary">—</MudText>
+                                }
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+            </MudItem>
+        }
+    }
+
+    <!-- Quick Actions -->
     <MudItem xs="12">
         <MudPaper Class="pa-4">
             <MudText Typo="Typo.h6">Quick Actions</MudText>
             <div class="d-flex mt-2" style="gap:12px;flex-wrap:wrap;">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/financial-survey" Disabled="false">Take Financial Survey</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Href="/resources" Disabled="false">Financial Resources</MudButton>
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" Href="/help" Disabled="false">Help</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/financial-survey">
+                    Take Financial Survey
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Href="/resources">
+                    Financial Resources
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" Href="/help">
+                    Help
+                </MudButton>
             </div>
         </MudPaper>
     </MudItem>
 </MudGrid>
-@code
-{
-    public class SuggestionItem
-    {
-        public string type { get; set; } = string.Empty;
-        public string risk { get; set; } = string.Empty;
-        public string rec { get; set; } = string.Empty;
-        public string info { get; set; } = string.Empty;
-    }
-
-
-}
-
 
 @code {
-    // Simple POCO to match your DataGrid columns (lowercase properties)
-  
-    private string _message = string.Empty;
-    // Backing list for the grid
-    public List<SuggestionItem> Suggestions { get; set; } = new();
+    private List<Recommendation> Recommendations { get; set; } = new();
 
     protected override void OnInitialized()
     {
-        // Artificial/filler data
-        Suggestions = new List<SuggestionItem>
-        {
-            new SuggestionItem
-            {
-                type = "Index Fund (S&P 500)",
-                risk = "Moderate",
-                rec  = "6/10",
-                info = "Low cost broad-market exposure; suitable for long-term growth."
-            },
-            new SuggestionItem
-            {
-                type = "Corporate Bonds (A- Rated)",
-                risk = "Low",
-                rec  = "9/10",
-                info = "Link place holder"
-            },
-            new SuggestionItem
-            {
-                type = "Emerging Markets ETF",
-                risk = "High",
-                rec  = "1/10",
-                info = "Link place holder"
-            },
-            new SuggestionItem
-            {
-                type = "REIT (Diversified)",
-                risk = "Moderate",
-                rec  = "0/10",
-                info = "Link place holder"
-            },
-            new SuggestionItem
-            {
-                type = "Treasury Bills (3-Month)",
-                risk = "Very Low",
-                rec  = "7/10",
-                info = "Link place holder"
-            },
-            new SuggestionItem
-            {
-                type = "Tech Growth Stock",
-                risk = "High",
-                rec  = "2/10",
-                info = "Link place holder"
-            },
-            new SuggestionItem
-            {
-                type = "Capitol One Savings",
-                risk = "Low–Moderate",
-                rec  = "9/10",
-                info = "Link place holder"
-            },
-            new SuggestionItem
-            {
-                type = "Commodities Basket",
-                risk = "High",
-                rec  = "Neutral",
-                info = "Link place holder"
-            }
-        };
+        vm.StateChanged += VmOnStateChanged;
+        RefreshRecommendations();
     }
 
+    private void VmOnStateChanged()
+    {
+        RefreshRecommendations();
+        InvokeAsync(StateHasChanged);
+    }
 
+    private void RefreshRecommendations()
+    {
+        Recommendations = vm.AdvisorResult is { } res
+            ? Catalog.For(res).ToList()
+            : new List<Recommendation>();
+    }
 
-
-
-   
+    public void Dispose() => vm.StateChanged -= VmOnStateChanged;
 }
