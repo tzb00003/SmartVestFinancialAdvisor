@@ -21,11 +21,11 @@ namespace SmartVestFinancialAdvisor.Core.Agents
             var assets = items.Where(i => !i.IsDebt).ToList();
 
             // 1. Toxic Debt Detection (Threshold: > 7%)
-            foreach (var debt in debts.Where(d => d.InterestRate > 7m))
+            foreach (var debt in debts.Where(d => d.InterestRate > 0.07m))
             {
                 results.Add(new AnalysisResult(
                     Name,
-                    $"Toxic Interest: {debt.Label} ({debt.InterestRate}%).",
+                    $"Toxic Interest: {debt.Label} ({debt.InterestRate:P1}).",
                     "This debt costs more than the average stock market return. Cease new investments and pay this off aggressively.",
                     ImpactLevel.Critical));
             }

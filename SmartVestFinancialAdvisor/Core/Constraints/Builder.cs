@@ -32,7 +32,7 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
             // 1. Map to ClientProfile
             var client = MapToClientProfile(profile);
 
-            // 2. Fetch Demographic Benchmark for contextual analysis
+            // 2. Fetch benchmark
             var benchmark = await _benchmarkProvider.GetIncomeBenchmarkAsync(
                 client.Age,
                 client.LocationState ?? "NY",
@@ -42,20 +42,18 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
             // 3. Get the Score
             var score = await _scoreCalculator.AggregateScore(client);
 
-            // 4. Determine Category (Peer Model compares user against P25/P75)
+            // 4. Determine Category
             var category = await Categories.DetermineCategoryAsync(
                 client,
                 _scoreCalculator,
                 _benchmarkProvider
             );
 
-            // 5. Run the Advisor Engine for qualitative insights
-            // This runs BenchmarkAgent, PortfolioAgent, and SavingsAgent in parallel
+            // 5. Run the Advisor Engine
             var analysisResults = await _advisorEngine.RunAnalysisAsync(client, score, benchmark);
 
-            // 6. Finalize Constraints based on Category Definition
+            // 6. Finalize Constraints
             var definition = Categories.GetCategoryDefinition(category);
-
             var constraints = new PortfolioConstraints
             {
                 RiskTolerance = profile.RiskTolerance,
@@ -64,14 +62,43 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
                 MaxCashAllocation = definition.DefaultCashAllocation
             };
 
+            // -------- FACTS (for the recommender) ----------
+            // Adjust these if your "Savings" is not liquid cash.
+            decimal monthlyExpenses = client.MonthlyExpense;
+            decimal cashLike = client.Savings; // <-- if this is "cash". If it's total assets, switch to your cash property.
+            decimal emergencyMonths = monthlyExpenses > 0 ? cashLike / monthlyExpenses : 0m;
+
+            // If you track APRs elsewhere, replace with your real average.
+            // You can also compute a weighted APR from client.Items if you have balances.
+            decimal avgApr = 7.0m; // sensible default
+
+            // If you capture these in the survey, set them here; otherwise leave defaults.
+            bool hasEmployerMatch = false;
+            bool highTaxBracket = false;
+            bool inflationConcern = false;
+
+            var facts = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["MonthlyExpenses"] = monthlyExpenses,
+                ["Cash"] = cashLike,
+                ["EmergencyMonths"] = emergencyMonths,
+                ["AverageDebtAPR"] = avgApr,
+                ["HasEmployerMatch"] = hasEmployerMatch,
+                ["IsHighTaxBracket"] = highTaxBracket,
+                ["InflationConcern"] = inflationConcern
+            };
+            // -----------------------------------------------
+
             return new BuildResult
             {
                 Score = score,
                 Category = category,
                 Constraints = constraints,
-                Insights = analysisResults.ToList() // Added to result
+                Insights = analysisResults.ToList(),
+                Facts = facts
             };
         }
+
 
         private ClientProfile MapToClientProfile(FinancialProfile profile)
         {
@@ -97,10 +124,10 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
         public FinancialScore Score { get; set; } = null!;
         public ClientCategory Category { get; set; }
         public PortfolioConstraints Constraints { get; set; } = null!;
-
-        /// <summary>
-        /// The prioritized collection of agent-generated recommendations.
-        /// </summary>
         public List<AnalysisResult> Insights { get; set; } = new();
+
+        // NEW: lightweight context for the recommender
+        public IDictionary<string, object?> Facts { get; set; }
+            = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
     }
 }

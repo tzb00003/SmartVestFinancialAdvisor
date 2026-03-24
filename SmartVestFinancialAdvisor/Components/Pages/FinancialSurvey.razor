@@ -4,6 +4,7 @@
 @using SmartVestFinancialAdvisor.Components.Models
 @using SmartVestFinancialAdvisor.Components.ViewModels
 @inject FinancialSurveyViewModel vm
+@inject NavigationManager Nav
 @implements IDisposable
 
 <MudPaper Class="mx-auto my-6 p-6" Elevation="2" Style="max-width: 980px;">
@@ -200,7 +201,6 @@
 
                     <RowTemplate>
                         <MudTd DataLabel="Label" Class="w-40">
-                            <!-- NOTE: Keep Required ONLY if you don't start with a default empty row -->
                             <MudTextField @bind-Value="@context.Label"
                                           Placeholder="e.g., 401(k), Auto Loan"
                                           Variant="Variant.Outlined"
@@ -336,7 +336,6 @@
                     Reset
                 </MudButton>
 
-
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Primary"
                            OnClick="Submit"
@@ -344,40 +343,8 @@
                            Loading="vm.IsSubmitting">
                     Submit
                 </MudButton>
-
             </MudStack>
         </MudForm>
-
-        @if (vm.Submitted && _form?.IsValid == true)
-        {
-            <MudDivider Class="my-4" />
-            <MudText Typo="Typo.subtitle1" Class="mb-2">Submission Preview</MudText>
-
-            <MudTable T="KeyValuePair<string,string>" Items="vm.SummaryRows()" Dense="true" Elevation="0" Hover="false" Bordered="false" Striped="false">
-                <HeaderContent>
-                    <MudTh>Field</MudTh>
-                    <MudTh>Value</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Field">@context.Key</MudTd>
-                    <MudTd DataLabel="Value">@context.Value</MudTd>
-                </RowTemplate>
-            </MudTable>
-
-            <MudDivider Class="my-3" />
-
-            <MudText Typo="Typo.subtitle2" Class="mb-1">Item Totals</MudText>
-            <MudTable T="KeyValuePair<string,string>" Items="vm.ItemSummaryRows()" Dense="true" Elevation="0" Hover="false" Bordered="false" Striped="false">
-                <HeaderContent>
-                    <MudTh>Metric</MudTh>
-                    <MudTh>Value</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Metric">@context.Key</MudTd>
-                    <MudTd DataLabel="Value">@context.Value</MudTd>
-                </RowTemplate>
-            </MudTable>
-        }
     </MudStack>
 </MudPaper>
 
@@ -431,17 +398,40 @@
             return;
 
         await _form.Validate();
-
-        // keep vm.IsValid in sync (optional but helpful)
         vm.IsValid = _form.IsValid;
 
-        // force UI to re-evaluate Disabled based on _form?.IsValid
-        StateHasChanged();
-
-        if (!_form.IsValid)
+        if (!(_form.IsValid))
             return;
 
-        await vm.SubmitAsync();
+        try
+        {
+            vm.IsSubmitting = true;
+
+            // This should populate vm.AdvisorResult internally (BuildResult)
+            await vm.SubmitAsync();
+
+            vm.Submitted = true;
+        }
+        catch (Exception ex)
+        {
+            var details = ex.InnerException is not null
+                ? $"{ex.Message} | Inner: {ex.InnerException.Message}"
+                : ex.Message;
+
+            vm.ServerError = $"Submission failed: {details}";
+            return; // don't continue to navigate
+        }
+        finally
+        {
+            // Turn off loading *before* navigating away to avoid post-nav state events
+            vm.IsSubmitting = false;
+        }
+
+        // IMPORTANT: detach BEFORE we navigate to avoid 'renderer disposed' crashes
+        vm.StateChanged -= StateHasChanged;
+
+        // If you removed the success banner on Home, you can drop '?submitted=1'
+        Nav.NavigateTo("/home#analysis", replace: true);
     }
 
     private void Reset()
@@ -449,7 +439,7 @@
         vm.Reset();
         _form?.ResetValidation();
 
-        // Optional: reflect reset validation into button state
+        // Reflect reset validation into button state
         vm.IsValid = false;
     }
 
