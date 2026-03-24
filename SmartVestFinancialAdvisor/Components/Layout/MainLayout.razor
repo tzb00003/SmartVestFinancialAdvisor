@@ -1,4 +1,6 @@
 ﻿@inherits LayoutComponentBase
+@using MudBlazor
+@inject IDialogService DialogService
 
 <div class="page">
     <div class="sidebar">
@@ -7,17 +9,28 @@
 
     <main>
         <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <!-- 1. Use @onclick and prevent default anchor behavior -->
+            <a @onclick="OpenTestDialog" style="cursor:pointer" target="_blank">Sign In</a>
         </div>
 
         <article class="content px-4">
             @Body
         </article>
     </main>
+
+    <MudThemeProvider />
+    <MudPopoverProvider />
+
+    <!-- 2. Ensure interactivity is enabled -->
+    <MudDialogProvider @rendermode="InteractiveServer" />
+    <MudSnackbarProvider />
 </div>
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
+@code {
+    // 3. The method must exist here
+    private async Task OpenTestDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true, MaxWidth = MaxWidth.Small };
+        await DialogService.ShowAsync<LogInDialog>("Sign In", options);
+    }
+}
