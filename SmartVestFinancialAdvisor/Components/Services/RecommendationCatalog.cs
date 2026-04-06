@@ -19,54 +19,26 @@ namespace SmartVestFinancialAdvisor.Components.Services
 
         public RecommendationCatalog()
         {
-            // Expanded seed set: actions + investable ideas.
-            // Score10/Info are recomputed per user in For(...).
             _all = new List<Recommendation>
             {
-                // ---------- ACTIONS (high-impact hygiene items) ----------
-                //new() {
-                //    Type = "Pay Down High-Interest Debt",
-                //    Risk = "Very Low",
-                //    Score10 = 0,
-                //    Info = "Lower expensive debt first to free up cash each month and reduce risk."
-                //},
-                //new() {
-                //    Type = "Build/Top-Up Emergency Fund (HYSA/T-Bills)",
-                //    Risk = "Very Low",
-                //    Score10 = 0,
-                //    Info = "Aim for 3–6 months of expenses in a safe, easy‑to‑access account."
-                //},
-                //new() {
-                //    Type = "Max Employer 401(k) Match",
-                //    Risk = "Low",
-                //    Score10 = 0,
-                //    Info = "Don’t leave free money on the table—contribute enough to get the full match."
-                //},
-                //new() {
-                //    Type = "Increase Retirement Contributions",
-                //    Risk = "Low–Moderate",
-                //    Score10 = 0,
-                //    Info = "Boost your savings rate to stay on track for long‑term goals."
-                //},
-
                 // ---------------- CASH & CASH‑LIKE ----------------
                 new() {
                     Type = "High-Yield Savings Account (HYSA)",
                     Risk = "Very Low",
                     Score10 = 0,
-                    Info = "A safe place for near‑term money that earns more than a regular savings account."
+                    Info = "A savings account that pays more interest than a regular bank account. Good for emergency funds or money you may need soon."
                 },
                 new() {
                     Type = "Treasury Bills (3–6 Months)",
                     Risk = "Very Low",
                     Score10 = 0,
-                    Info = "Short‑term U.S. government bonds—very safe with steady, predictable returns."
+                    Info = "Short‑term loans to the U.S. government. Very safe and commonly used to park cash for a few months."
                 },
                 new() {
                     Type = "Certificates of Deposit (6–12 Months)",
                     Risk = "Very Low",
                     Score10 = 0,
-                    Info = "Lock in a fixed rate for a set time; penalties may apply for early withdrawal."
+                    Info = "You agree to keep your money in the bank for a set time in exchange for a guaranteed return. Accessing early may cost a fee."
                 },
 
                 // -------------------- BONDS -----------------------
@@ -74,25 +46,25 @@ namespace SmartVestFinancialAdvisor.Components.Services
                     Type = "Investment-Grade Bond ETF (Core Aggregate)",
                     Risk = "Low",
                     Score10 = 0,
-                    Info = "A mix of high‑quality bonds that helps steady your portfolio during market swings."
+                    Info = "A collection of high‑quality bonds that provides steady income and helps reduce ups and downs in your portfolio."
                 },
                 new() {
                     Type = "Treasury Ladder (3–12 Months)",
                     Risk = "Very Low",
                     Score10 = 0,
-                    Info = "Bonds maturing at different times, so part of your money frees up regularly."
+                    Info = "Multiple government bonds that mature at different times, giving you regular access to your money."
                 },
                 new() {
                     Type = "TIPS ETF (Inflation-Protected)",
                     Risk = "Low",
                     Score10 = 0,
-                    Info = "Bonds designed to help your money keep up with inflation."
+                    Info = "Bonds designed to adjust with inflation, helping your purchasing power hold up as prices rise."
                 },
                 new() {
                     Type = "Municipal Bond Fund (Taxable Accounts)",
                     Risk = "Low",
                     Score10 = 0,
-                    Info = "Can reduce taxes on interest if you’re in a higher tax bracket."
+                    Info = "Bond income that may be exempt from some taxes, which can be helpful for higher‑income investors."
                 },
 
                 // ------------------- EQUITIES ---------------------
@@ -100,31 +72,31 @@ namespace SmartVestFinancialAdvisor.Components.Services
                     Type = "Total U.S. Stock Market Index Fund",
                     Risk = "Moderate–High",
                     Score10 = 0,
-                    Info = "Low‑cost exposure to nearly the entire U.S. stock market for long‑term growth."
+                    Info = "Invests in thousands of U.S. companies at once, offering broad exposure and long‑term growth potential."
                 },
                 new() {
                     Type = "S&P 500 Index Fund",
                     Risk = "Moderate–High",
                     Score10 = 0,
-                    Info = "Owns 500 large U.S. companies; a simple, low‑cost core for long‑term investing."
+                    Info = "Tracks 500 of the largest U.S. companies. A simple and popular foundation for long‑term investing."
                 },
                 new() {
                     Type = "Total International Stock Index Fund",
                     Risk = "High",
                     Score10 = 0,
-                    Info = "Adds companies outside the U.S. for global diversification."
+                    Info = "Invests in companies outside the U.S. to reduce reliance on a single country’s economy."
                 },
                 new() {
                     Type = "Small-Cap Value Tilt ETF",
                     Risk = "High",
                     Score10 = 0,
-                    Info = "Focuses on smaller, value‑oriented companies—higher return potential with more ups and downs."
+                    Info = "Focused on smaller and potentially undervalued companies. Can grow faster, but prices move more dramatically."
                 },
                 new() {
                     Type = "REIT (Diversified)",
                     Risk = "Moderate–High",
                     Score10 = 0,
-                    Info = "Invests in real estate businesses that generate income from rent and properties."
+                    Info = "Invests in real estate like apartments, offices, and shopping centers. Often used for income and diversification."
                 },
 
                 // ---------------- OTHER / HEDGES ------------------
@@ -132,11 +104,11 @@ namespace SmartVestFinancialAdvisor.Components.Services
                     Type = "Commodities Basket",
                     Risk = "High",
                     Score10 = 0,
-                    Info = "A mix of commodities (like energy and metals) that may help during high inflation—but can be volatile."
+                    Info = "Invests in resources like oil, metals, or agriculture. Can help during inflation but tends to be unpredictable."
                 }
             };
-
         }
+
 
         public IReadOnlyList<Recommendation> All
         {
