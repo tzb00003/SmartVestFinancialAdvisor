@@ -1,4 +1,7 @@
-﻿@using System.ComponentModel.DataAnnotations
+﻿@using SmartVestFinancialAdvisor.Data
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext Db
+@using System.ComponentModel.DataAnnotations
 @using MudBlazor
 
 <MudDialog MaxWidth="MaxWidth.ExtraSmall"
@@ -14,7 +17,8 @@
     <DialogContent>
         <MudForm @ref="_form"
                  Model="_model"
-                 Validation="OnValidationChanged"
+                 @bind-isValid="_isValid"
+                 @bind-Errors="_errors"
                  Immediate="true">
 
             <MudTextField @bind-Value="_model.Email"
@@ -73,7 +77,7 @@
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
                    OnClick="Submit"
-                   Disabled="@(!_isValid || _isSubmitting)"
+                   Disabled="_isSubmitting"
                    Loading="_isSubmitting">
             Sign in
         </MudButton>
@@ -94,12 +98,13 @@
     private bool _showPassword;
     private bool _isSubmitting;
     private string? _error;
+    private string[] _errors = [];
 
     private readonly LoginModel _model = new();
 
-    private void OnValidationChanged(MudForm form)
+    private void OnValidationChanged(bool isValid)
     {
-        _isValid = form.IsValid;
+        _isValid = isValid;
     }
 
     private void TogglePassword() => _showPassword = !_showPassword;
@@ -119,12 +124,37 @@
         {
             _isSubmitting = true;
 
-            // TODO: Replace with your real authentication logic
-            // Example:
-            // var ok = await _authService.LoginAsync(_model.Email, _model.Password);
-            // if (!ok) { _error = "Invalid email or password."; return; }
+            // Check if user already exists
+            var existingUser = await Db.Users
+                .FirstOrDefaultAsync(u => u.Email == _model.Email);
 
-            // Simulate success result
+            if (_model.RememberMe) // "New User" checkbox is checked = Register
+            {
+                if (existingUser != null)
+                {
+                    _error = "An account with this email already exists.";
+                    return;
+                }
+
+                // Save new user to DB
+                var newUser = new User
+                {
+                    Email = _model.Email,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(_model.Password),
+                    CreatedAt = DateTime.UtcNow
+                };
+                Db.Users.Add(newUser);
+                await Db.SaveChangesAsync();
+            }
+            else // Existing user = Login
+            {
+                if (existingUser == null || !BCrypt.Net.BCrypt.Verify(_model.Password, existingUser.PasswordHash))
+                {
+                    _error = "Invalid email or password.";
+                    return;
+                }
+            }
+
             MudDialog.Close(DialogResult.Ok(new LoginResult
             {
                 Email = _model.Email,
