@@ -32,7 +32,7 @@
         <MudItem xs="12">
             <MudPaper Class="pa-6 d-flex flex-column align-center justify-center" Style="text-align:center;">
                 <MudIcon Icon="@Icons.Material.Filled.Assessment" Size="Size.Large" Color="Color.Primary" />
-                <MudText Typo="Typo.h5" Class="mt-2">No score or results </MudText>
+                <MudText Typo="Typo.h5" Class="mt-2">No score or results</MudText>
                 <MudText Typo="Typo.body2" Class="mt-1">
                     Take the quick financial survey to generate your score and personalized recommendations.
                 </MudText>
@@ -47,8 +47,7 @@
         <!-- Score card (left on desktop) -->
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-4">
-                <!-- New param CollapsibleOnMobile makes breakdown & distribution collapsible on mobile -->
-                <FinancialAnalysisPanel Result="vm.AdvisorResult"  />
+                <FinancialAnalysisPanel Result="vm.AdvisorResult" />
             </MudPaper>
         </MudItem>
 
@@ -57,44 +56,57 @@
         {
             <MudItem xs="12" md="6">
                 <MudPaper Class="pa-4" Style="background-color: #f2f2f2;">
-                    <MudText Typo="Typo.h6">Financial Portfolio</MudText>
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.h6">Financial Portfolio</MudText>
 
-                    <MudTable Items="@Recommendations.Take(4).ToList()"
-                              Dense="true"
-                              Hover="true"
-                              Bordered="true"
-                              Elevation="0"
-                              Class="grid-with-borders">
+                        <MudTable Items="@VisibleRecommendations"
+                                  Dense="true"
+                                  Hover="true"
+                                  Bordered="true"
+                                  Elevation="0"
+                                  Class="grid-with-borders">
 
-                        <HeaderContent>
-                            <MudTh>Investment Type</MudTh>
-                            <MudTh>Risk Level</MudTh>
-                            <MudTh>Recommendation Level</MudTh>
-                            <MudTh>More Information</MudTh>
-                        </HeaderContent>
+                            <HeaderContent>
+                                <MudTh>Investment Type</MudTh>
+                                <MudTh>Risk Level</MudTh>
+                                <MudTh Style="text-align:right;">Recommendation Level</MudTh>
+                                <MudTh>More Information</MudTh>
+                            </HeaderContent>
 
-                        <RowTemplate Context="rec">
-                            <MudTd DataLabel="Investment Type">@rec.Type</MudTd>
-                            <MudTd DataLabel="Risk Level">@rec.Risk</MudTd>
-                            <MudTd DataLabel="Recommendation Level">@rec.RecDisplay</MudTd>
-                            <MudTd DataLabel="More Information">
-                                @if (!string.IsNullOrWhiteSpace(rec?.Link))
-                                {
-                                    <MudLink Href="@rec.Link" Target="_blank" Color="Color.Primary">
-                                        Learn more
-                                    </MudLink>
-                                }
-                                else if (!string.IsNullOrWhiteSpace(rec?.Info))
-                                {
-                                    <MudText Color="Color.Secondary">@rec.Info</MudText>
-                                }
-                                else
-                                {
-                                    <MudText Color="Color.Secondary">—</MudText>
-                                }
-                            </MudTd>
-                        </RowTemplate>
-                    </MudTable>
+                            <RowTemplate Context="rec">
+                                <MudTd DataLabel="Investment Type">@rec.Type</MudTd>
+                                <MudTd DataLabel="Risk Level">@rec.Risk</MudTd>
+                                <MudTd DataLabel="Recommendation Level" Style="text-align:right;">@rec.RecDisplay</MudTd>
+                                <MudTd DataLabel="More Information">
+                                    @if (!string.IsNullOrWhiteSpace(rec?.Link))
+                                    {
+                                        <MudLink Href="@rec.Link" Target="_blank" Color="Color.Primary">
+                                            Learn more
+                                        </MudLink>
+                                    }
+                                    else if (!string.IsNullOrWhiteSpace(rec?.Info))
+                                    {
+                                        <MudText Color="Color.Secondary">@rec.Info</MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudText Color="Color.Secondary">—</MudText>
+                                    }
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+
+                        @* @if (CanShowMore)
+                        { *@
+                            <MudStack Direction="Row" Justify="Justify.FlexEnd">
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           OnClick="GenerateMore">
+                                    Generate more
+                                </MudButton>
+                            </MudStack>
+                        @* } *@
+                    </MudStack>
                 </MudPaper>
             </MudItem>
         }
@@ -120,7 +132,16 @@
 </MudGrid>
 
 @code {
+    private const int PageSize = 4;
+
     private List<Recommendation> Recommendations { get; set; } = new();
+    private int _visibleCount = PageSize;
+
+    private List<Recommendation> VisibleRecommendations =>
+        Recommendations.Take(_visibleCount).ToList();
+
+    private bool CanShowMore =>
+        Recommendations.Count > _visibleCount;
 
     protected override void OnInitialized()
     {
@@ -139,6 +160,14 @@
         Recommendations = vm.AdvisorResult is { } res
             ? Catalog.For(res).ToList()
             : new List<Recommendation>();
+
+        // Reset paging each time recommendations refresh
+        _visibleCount = PageSize;
+    }
+
+    private void GenerateMore()
+    {
+        _visibleCount = Math.Min(_visibleCount + PageSize, Recommendations.Count);
     }
 
     public void Dispose() => vm.StateChanged -= VmOnStateChanged;

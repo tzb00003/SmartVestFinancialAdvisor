@@ -1,134 +1,67 @@
 ﻿@using System
 @using System.Linq
 @using MudBlazor
-@using SmartVestFinancialAdvisor.Core.Constraints   @* BuildResult lives here *@
+@using SmartVestFinancialAdvisor.Core.Constraints
+
 @namespace SmartVestFinancialAdvisor.Components.Pages
 
-@if (Result is not null)
-{
-    <div id="analysis"></div> @* Anchor for /home#analysis *@
-    <MudDivider Class="my-6" />
-
-    <!-- Headline / Score -->
-    <MudStack Direction="Row" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-        <div>
-            <MudText Typo="Typo.h5" Color="Color.Primary">Your Financial Analysis</MudText>
-            <MudText Typo="Typo.subtitle1" Color="Color.Tertiary">Category: @Result.Category</MudText>
-        </div>
-        <div>
-            <MudText Typo="Typo.h3" Align="Align.Right">
-                @( (int)Math.Round(Convert.ToDouble(Result.Score?.Total ?? 0)) )
-                <MudText Typo="Typo.h6" Inline="true">/100</MudText>
-            </MudText>
-            <MudText Typo="Typo.caption" Align="Align.Right" Style="display:block;">Total Score</MudText>
-        </div>
-    </MudStack>
-
-    <MudGrid Class="mt-4">
-        <!-- SubScores -->
-        <MudItem xs="12" md="6">
-            <MudCard Elevation="0" Outlined="true">
-                <MudCardHeader>
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">Score Details</MudText>
-                    </CardHeaderContent>
-                </MudCardHeader>
-                <MudCardContent>
-                    @if (Result.Score?.SubScores?.Any() == true)
-                    {
-                        <MudTable Items="Result.Score.SubScores" Dense="true" Elevation="0" Hover="true">
-                            <HeaderContent>
-                                <MudTh>Area</MudTh>
-                                <MudTh Style="text-align:right">Score</MudTh>
-                                <MudTh Style="text-align:right">Weight</MudTh>
-                            </HeaderContent>
-                            <RowTemplate Context="sub">
-                                <MudTd DataLabel="Area">@sub.Name</MudTd>
-                                <MudTd DataLabel="Score" Style="text-align:right">@sub.RawScore.ToString("F0") / 100</MudTd>
-                                <MudTd DataLabel="Weight" Style="text-align:right">@sub.Weight.ToString("P0")</MudTd>
-                            </RowTemplate>
-                        </MudTable>
-                    }
-                    else
-                    {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">No sub-scores available.</MudText>
-                    }
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <!-- Recommended Allocations -->
-        @* <MudItem xs="12" md="6">
-            <MudCard Elevation="0" Outlined="true">
-                <MudCardHeader>
-                    <CardHeaderContent>
-                        <MudText Typo="Typo.h6">Recommended Allocation</MudText>
-                    </CardHeaderContent>
-                </MudCardHeader>
-                <MudCardContent>
-                    @if (Result.Constraints is not null)
-                    {
-                        <MudList T="string" Dense="true">
-                            <MudListItem>
-                                <MudText><b>Stocks:</b> @Result.Constraints.MaxStockAllocation.ToString("P0")</MudText>
-                            </MudListItem>
-                            <MudListItem>
-                                <MudText><b>Bonds:</b> @Result.Constraints.MaxBondAllocation.ToString("P0")</MudText>
-                            </MudListItem>
-                            <MudListItem>
-                                <MudText><b>Cash:</b> @Result.Constraints.MaxCashAllocation.ToString("P0")</MudText>
-                            </MudListItem>
-                        </MudList>
-                        <MudText Typo="Typo.caption" Class="mt-2" Style="display:block">
-                            Based on Risk Tolerance: @Result.Constraints.RiskTolerance.ToString("P0")
-                        </MudText>
-                    }
-                    else
-                    {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">No allocation constraints available.</MudText>
-                    }
-                </MudCardContent>
-            </MudCard>
-        </MudItem> *@
-    </MudGrid>
-
-    <!-- Insights / Recommendations -->
-    @if (Result.Insights?.Any() == true)
-    {
-        <MudText Typo="Typo.h6" Class="mt-6 mb-2">Key Insights & Recommendations</MudText>
-        <MudStack Spacing="3">
-            @foreach (var insight in Result.Insights)
-            {
-                var severity = ToSeverity(insight?.Impact.ToString() ?? string.Empty);
-
-                <MudAlert Severity="@severity" Variant="Variant.Filled" Dense="true" Class="mb-2">
-                    <MudText Typo="Typo.subtitle2">@insight?.AgentName - @insight?.Insight</MudText>
-                    <MudText Typo="Typo.body2">@insight?.Recommendation</MudText>
-                </MudAlert>
-            }
-        </MudStack>
-    }
-    else
-    {
-        <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Class="mt-6">
-            No critical issues detected. Stay the course!
-        </MudAlert>
-    }
-}
-else
+@if (Result is null)
 {
     <MudText Typo="Typo.caption" Color="Color.Secondary">
         No analysis has been generated yet.
     </MudText>
 }
+else
+{
+    <div id="analysis"></div> @* Anchor for /home#analysis *@
+
+    <MudStack Spacing="2">
+
+        <MudText Typo="Typo.h5" Color="Color.Primary">Your Financial Analysis</MudText>
+        <MudText Typo="Typo.subtitle1" Color="Color.Secondary">
+            Category: @Result.Category
+        </MudText>
+
+        <MudDivider />
+
+        <MudText Typo="Typo.h3">
+            @TotalScoreInt <MudText Typo="Typo.h6" Inline="true">/100</MudText>
+        </MudText>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Overall Score</MudText>
+
+        <MudDivider Class="my-2" />
+
+        <MudText Typo="Typo.h6">Score Details</MudText>
+
+        @if (Result.Score?.SubScores?.Any() == true)
+        {
+            <MudTable Items="Result.Score.SubScores" Dense="true" Hover="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh>Area</MudTh>
+                    <MudTh Style="text-align:right">Score</MudTh>
+                    <MudTh Style="text-align:right">Weight</MudTh>
+                </HeaderContent>
+
+                <RowTemplate Context="sub">
+                    <MudTd DataLabel="Area">@sub.Name</MudTd>
+                    <MudTd DataLabel="Score" Style="text-align:right">@sub.RawScore.ToString("F0") / 100</MudTd>
+                    <MudTd DataLabel="Weight" Style="text-align:right">@sub.Weight.ToString("P0")</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                No sub-scores available.
+            </MudText>
+        }
+
+    </MudStack>
+}
 
 @code {
     [Parameter] public BuildResult? Result { get; set; }
 
-    private static Severity ToSeverity(string impact) => impact switch
-    {
-        "Critical" => Severity.Error,
-        "Warning" => Severity.Warning,
-        _ => Severity.Info
-    };
+    private int TotalScoreInt =>
+        (int)Math.Round(Convert.ToDouble(Result?.Score?.Total ?? 0m));
 }
