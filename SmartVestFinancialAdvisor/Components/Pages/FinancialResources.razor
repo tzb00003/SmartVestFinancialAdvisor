@@ -1,17 +1,458 @@
 ﻿@page "/financial-resources"
 @using MudBlazor
 
-<h3>This page is still in development. Please return at a later date for this feature to be added.</h3>
-<MudGrid>
-    <MudItem xs="6"/>
-    <MudItem xs="6" >
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/home">
-            Return to Home
-        </MudButton>
-    </MudItem>
-    <MudItem xs="6" />
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-6 mb-8">
+    <MudStack Spacing="3">
 
-</MudGrid>
-@code {
+        <!-- Header -->
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.h4" GutterBottom="true">Financial Resources</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Quick explanations by category—tap into details only when you want them.
+            </MudText>
+        </MudPaper>
 
-}
+        <!-- Tabs (mobile-friendly: scroll buttons + keep-alive) -->
+        <MudTabs Rounded="true"
+                 Elevation="1"
+                 KeepPanelsAlive="true"
+                 ApplyEffectsToContainer="true"
+                 ScrollButtons="ScrollButtons.Auto"
+                 SliderColor="Color.Primary">
+
+            <!-- ================= SCORE & MEANING ================= -->
+            <MudTabPanel Text="Score">
+                <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--mud-palette-lines-default); border-radius:12px;">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.h6">How Your Score Works</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Your SmartVest score is a <b>0–100</b> snapshot of financial stability and investing readiness.
+                            It’s built from five weighted categories based on your survey inputs.
+                        </MudText>
+
+                        <MudDivider />
+
+                        <MudText Typo="Typo.subtitle2">Categories & Weights</MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem><MudText Typo="Typo.body2"><b>Income Stability</b> — 40%</MudText></MudListItem>
+                            <MudListItem><MudText Typo="Typo.body2"><b>Savings Health</b> — 20%</MudText></MudListItem>
+                            <MudListItem><MudText Typo="Typo.body2"><b>Debt Load</b> — 20%</MudText></MudListItem>
+                            <MudListItem><MudText Typo="Typo.body2"><b>Emergency Fund</b> — 10%</MudText></MudListItem>
+                            <MudListItem><MudText Typo="Typo.body2"><b>Retirement Readiness</b> — 10%</MudText></MudListItem>
+                        </MudList>
+
+                        <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                            Total score = weighted sum of the category scores (each category is scored 0–100).
+                        </MudAlert>
+
+                        <MudExpansionPanels Multiple="true" Elevation="0">
+                            <MudExpansionPanel Text="What each category means (details)">
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>
+                                        <MudText Typo="Typo.body2">
+                                            <b>Income Stability:</b> compares your income to benchmarks for your age and state.
+                                        </MudText>
+                                    </MudListItem>
+                                    <MudListItem>
+                                        <MudText Typo="Typo.body2">
+                                            <b>Savings Health:</b> compares your total assets vs total debt to measure overall solvency.
+                                        </MudText>
+                                    </MudListItem>
+                                    <MudListItem>
+                                        <MudText Typo="Typo.body2">
+                                            <b>Debt Load:</b> considers monthly outflow pressure (expenses + debt payments) vs income, and penalizes high interest rates.
+                                        </MudText>
+                                    </MudListItem>
+                                    <MudListItem>
+                                        <MudText Typo="Typo.body2">
+                                            <b>Emergency Fund:</b> measures liquid assets relative to ~6 months of expenses.
+                                        </MudText>
+                                    </MudListItem>
+                                    <MudListItem>
+                                        <MudText Typo="Typo.body2">
+                                            <b>Retirement Readiness:</b> compares retirement savings to an age-adjusted target.
+                                        </MudText>
+                                    </MudListItem>
+                                </MudList>
+                            </MudExpansionPanel>
+
+                            <MudExpansionPanel Text="How to interpret your score (simple)">
+                                <MudList T="string" Dense="true">
+                                    <MudListItem><MudText Typo="Typo.body2"><b>80–100:</b> strong foundation; investing recommendations will align closely with your risk preference.</MudText></MudListItem>
+                                    <MudListItem><MudText Typo="Typo.body2"><b>60–79:</b> generally solid; focus on improving weaker categories to unlock better investing flexibility.</MudText></MudListItem>
+                                    <MudListItem><MudText Typo="Typo.body2"><b>40–59:</b> mixed; prioritize emergency fund and debt load to reduce risk.</MudText></MudListItem>
+                                    <MudListItem><MudText Typo="Typo.body2"><b>0–39:</b> foundation first; reduce financial stress before taking on investing risk.</MudText></MudListItem>
+                                </MudList>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudStack>
+                </MudPaper>
+            </MudTabPanel>
+
+            <!-- ================= RECOMMENDATIONS ================= -->
+            <MudTabPanel Text="Recommendations">
+                <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--mud-palette-lines-default); border-radius:12px;">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.h6">How Recommendations Are Generated</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Recommendations are ranked 0–10 for how well they fit your situation <b>right now</b>.
+                            Each recommendation includes a short <b>“why”</b> so you can understand the logic.
+                        </MudText>
+
+                        <MudDivider />
+
+                        <MudText Typo="Typo.subtitle2">Core rules</MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem>
+                                <MudText Typo="Typo.body2">
+                                    <b>Risk preference matters:</b> your selected risk level weights which products fit best.
+                                </MudText>
+                            </MudListItem>
+                            <MudListItem>
+                                <MudText Typo="Typo.body2">
+                                    <b>Foundation first:</b> if debt stress + weak cash flow exist, we prioritize stability instead of risky investing.
+                                </MudText>
+                            </MudListItem>
+                            <MudListItem>
+                                <MudText Typo="Typo.body2">
+                                    <b>Top picks first:</b> Home shows the strongest picks first. Tap <b>Generate more</b> to see next-best ideas.
+                                </MudText>
+                            </MudListItem>
+                            <MudListItem>
+                                <MudText Typo="Typo.body2">
+                                    <b>HYSA fallback:</b> if nothing is strong enough, we recommend a High‑Yield Savings Account as a safe default.
+                                </MudText>
+                            </MudListItem>
+                        </MudList>
+
+                        <MudExpansionPanels Multiple="true" Elevation="0">
+                            <MudExpansionPanel Text="What does “Recommendation Level (0–10)” mean?">
+                                <MudText Typo="Typo.body2">
+                                    The number is a relative priority score:
+                                </MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem><MudText Typo="Typo.body2"><b>8–10:</b> strong fit right now (high impact + aligned with your risk and fundamentals).</MudText></MudListItem>
+                                    <MudListItem><MudText Typo="Typo.body2"><b>6–7:</b> good fit (useful, but not always the top priority).</MudText></MudListItem>
+                                    <MudListItem><MudText Typo="Typo.body2"><b>1–5:</b> “next-best” ideas (not urgent, less aligned, or not optimal right now).</MudText></MudListItem>
+                                </MudList>
+                            </MudExpansionPanel>
+
+                            <MudExpansionPanel Text="Why we sometimes don’t recommend investing">
+                                <MudText Typo="Typo.body2">
+                                    If high-interest debt and cash-flow pressure are present, investing may increase risk.
+                                    In those cases, we recommend actions (pay down debt / build emergency fund) and safe cash options first.
+                                </MudText>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudStack>
+                </MudPaper>
+            </MudTabPanel>
+
+            <!-- ================= CASH & SHORT-TERM ================= -->
+            <MudTabPanel Text="Cash">
+                <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--mud-palette-lines-default); border-radius:12px;">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.h6">Cash & Short‑Term</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Designed for safety and liquidity. Best for emergency funds and near-term goals.
+                        </MudText>
+
+                        <MudExpansionPanels Multiple="true" Elevation="0">
+                            <MudExpansionPanel Text="High‑Yield Savings Account (HYSA)">
+                                <MudText><b>What it is:</b> A savings account that pays higher interest than a traditional bank account.</MudText>
+                                <MudText><b>Why people use it:</b> Emergency funds or money needed soon.</MudText>
+                                <MudDivider Class="my-2" />
+                                <MudText><b>Pros:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Very safe</MudListItem>
+                                    <MudListItem>Easy access to cash</MudListItem>
+                                    <MudListItem>Earns interest</MudListItem>
+                                </MudList>
+                                <MudText><b>Cons:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Returns may not keep up with inflation</MudListItem>
+                                </MudList>
+                                <MudText><b>Best for:</b> Emergency funds and short‑term goals.</MudText>
+                            </MudExpansionPanel>
+
+                            <MudExpansionPanel Text="Treasury Bills (3–6 Months)">
+                                <MudText><b>What it is:</b> Short‑term loans to the U.S. government.</MudText>
+                                <MudText><b>Why people use it:</b> A safe place to park cash for a few months.</MudText>
+                                <MudDivider Class="my-2" />
+                                <MudText><b>Pros:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Backed by the U.S. government</MudListItem>
+                                    <MudListItem>Predictable return</MudListItem>
+                                </MudList>
+                                <MudText><b>Cons:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Money is locked up until maturity</MudListItem>
+                                    <MudListItem>Lower returns than long‑term investments</MudListItem>
+                                </MudList>
+                                <MudText><b>Best for:</b> Short‑term cash with minimal risk.</MudText>
+                            </MudExpansionPanel>
+
+                            <MudExpansionPanel Text="Certificates of Deposit (6–12 Months)">
+                                <MudText><b>What it is:</b> A bank product that locks a rate for a fixed term.</MudText>
+                                <MudText><b>Why people use it:</b> Predictable returns for money they won’t need immediately.</MudText>
+                                <MudDivider Class="my-2" />
+                                <MudText><b>Pros:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Guaranteed yield (if held to maturity)</MudListItem>
+                                    <MudListItem>Very low risk</MudListItem>
+                                </MudList>
+                                <MudText><b>Cons:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Early withdrawal penalties</MudListItem>
+                                    <MudListItem>Less flexible than HYSA</MudListItem>
+                                </MudList>
+                                <MudText><b>Best for:</b> Cash you can lock up for a defined period.</MudText>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudStack>
+                </MudPaper>
+            </MudTabPanel>
+
+            <!-- ================= BONDS ================= -->
+            <MudTabPanel Text="Bonds">
+                <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--mud-palette-lines-default); border-radius:12px;">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.h6">Bonds</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Generally lower volatility than stocks. Often used for stability and income.
+                        </MudText>
+
+                        <MudExpansionPanels Multiple="true" Elevation="0">
+                            <MudExpansionPanel Text="Investment‑Grade Bond Fund">
+                                <MudText><b>What it is:</b> A fund that holds many high‑quality bonds.</MudText>
+                                <MudText><b>Why people use it:</b> Adds stability and income to a portfolio.</MudText>
+                                <MudDivider Class="my-2" />
+                                <MudText><b>Pros:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Less volatile than stocks</MudListItem>
+                                    <MudListItem>Regular income</MudListItem>
+                                </MudList>
+                                <MudText><b>Cons:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Can lose value when interest rates rise</MudListItem>
+                                    <MudListItem>Lower long‑term growth than stocks</MudListItem>
+                                </MudList>
+                                <MudText><b>Best for:</b> Balancing risk in long‑term portfolios.</MudText>
+                            </MudExpansionPanel>
+
+                            <MudExpansionPanel Text="Inflation‑Protected Bonds (TIPS)">
+                                <MudText><b>What it is:</b> Bonds whose value adjusts with inflation.</MudText>
+                                <MudText><b>Why people use it:</b> Protect purchasing power.</MudText>
+                                <MudDivider Class="my-2" />
+                                <MudText><b>Pros:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Helps offset inflation risk</MudListItem>
+                                </MudList>
+                                <MudText><b>Cons:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Lower returns when inflation is low</MudListItem>
+                                </MudList>
+                                <MudText><b>Best for:</b> Conservative investors worried about inflation.</MudText>
+                            </MudExpansionPanel>
+
+                            <MudExpansionPanel Text="Municipal Bonds (Taxable Accounts)">
+                                <MudText><b>What it is:</b> Bonds issued by states/cities; interest may be tax-advantaged.</MudText>
+                                <MudText><b>Why people use it:</b> Potentially improves after-tax returns in some cases.</MudText>
+                                <MudDivider Class="my-2" />
+                                <MudText><b>Best for:</b> Typically more useful at higher tax brackets.</MudText>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudStack>
+                </MudPaper>
+            </MudTabPanel>
+
+            <!-- ================= STOCKS ================= -->
+            <MudTabPanel Text="Stocks">
+                <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--mud-palette-lines-default); border-radius:12px;">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.h6">Stocks</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Higher long-term growth potential with higher volatility. Best for long timelines.
+                        </MudText>
+
+                        <MudExpansionPanels Multiple="true" Elevation="0">
+                            <MudExpansionPanel Text="Total U.S. Stock Market Index Fund">
+                                <MudText><b>What it is:</b> A fund that owns thousands of U.S. companies.</MudText>
+                                <MudText><b>Why people use it:</b> Broad exposure and long‑term growth.</MudText>
+                                <MudDivider Class="my-2" />
+                                <MudText><b>Pros:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Highly diversified</MudListItem>
+                                    <MudListItem>Low cost</MudListItem>
+                                    <MudListItem>Strong long‑term growth potential</MudListItem>
+                                </MudList>
+                                <MudText><b>Cons:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Can drop significantly during market downturns</MudListItem>
+                                </MudList>
+                                <MudText><b>Best for:</b> Long‑term investors comfortable with volatility.</MudText>
+                            </MudExpansionPanel>
+
+                            <MudExpansionPanel Text="S&P 500 Index Fund">
+                                <MudText><b>What it is:</b> Tracks ~500 large U.S. companies.</MudText>
+                                <MudText><b>Why people use it:</b> Simple core holding with broad exposure to major U.S. businesses.</MudText>
+                                <MudDivider Class="my-2" />
+                                <MudText><b>Best for:</b> Long-term investing as a core equity position.</MudText>
+                            </MudExpansionPanel>
+
+                            <MudExpansionPanel Text="International Stock Index Fund">
+                                <MudText><b>What it is:</b> A fund investing in companies outside the U.S.</MudText>
+                                <MudText><b>Why people use it:</b> Geographic diversification.</MudText>
+                                <MudDivider Class="my-2" />
+                                <MudText><b>Pros:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Reduces reliance on one country</MudListItem>
+                                </MudList>
+                                <MudText><b>Cons:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Currency and political risk</MudListItem>
+                                    <MudListItem>May lag U.S. markets for long periods</MudListItem>
+                                </MudList>
+                                <MudText><b>Best for:</b> Diversifying long‑term portfolios.</MudText>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudStack>
+                </MudPaper>
+            </MudTabPanel>
+
+            <!-- ================= REAL ASSETS ================= -->
+            <MudTabPanel Text="Real Assets">
+                <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--mud-palette-lines-default); border-radius:12px;">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.h6">Real Assets & Hedges</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Used as diversifiers and hedges. Typically best as smaller allocations.
+                        </MudText>
+
+                        <MudExpansionPanels Multiple="true" Elevation="0">
+                            <MudExpansionPanel Text="Real Estate Investment Trusts (REITs)">
+                                <MudText><b>What it is:</b> Companies that own income‑producing real estate.</MudText>
+                                <MudText><b>Why people use it:</b> Income and diversification.</MudText>
+                                <MudDivider Class="my-2" />
+                                <MudText><b>Pros:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Regular income</MudListItem>
+                                    <MudListItem>Real estate exposure without owning property</MudListItem>
+                                </MudList>
+                                <MudText><b>Cons:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Sensitive to interest rates</MudListItem>
+                                    <MudListItem>Can be volatile</MudListItem>
+                                </MudList>
+                                <MudText><b>Best for:</b> Smaller diversification positions.</MudText>
+                            </MudExpansionPanel>
+
+                            <MudExpansionPanel Text="Commodities Basket">
+                                <MudText><b>What it is:</b> A collection of raw materials like oil, metals, or agriculture.</MudText>
+                                <MudText><b>Why people use it:</b> Inflation protection and diversification.</MudText>
+                                <MudDivider Class="my-2" />
+                                <MudText><b>Pros:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>May perform well during inflation</MudListItem>
+                                </MudList>
+                                <MudText><b>Cons:</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Highly volatile</MudListItem>
+                                    <MudListItem>No income</MudListItem>
+                                </MudList>
+                                <MudText><b>Best for:</b> Small hedge allocations only.</MudText>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudStack>
+                </MudPaper>
+            </MudTabPanel>
+
+            <!-- ================= EXTRA ================= -->
+            <MudTabPanel Text="Extra">
+                <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--mud-palette-lines-default); border-radius:12px;">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.h6">Extra Financial Information</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Helpful concepts that influence your score and long-term success.
+                        </MudText>
+
+                        <MudExpansionPanels Multiple="true" Elevation="0">
+
+                            <MudExpansionPanel Text="Emergency Funds: Why They Matter">
+                                <MudText>
+                                    <b>What it is:</b> Cash set aside for unexpected expenses (job loss, medical, repairs).
+                                </MudText>
+                                <MudText>
+                                    <b>Why it matters:</b> Avoids high‑interest debt and prevents selling investments at the wrong time.
+                                </MudText>
+                                <MudDivider Class="my-2" />
+                                <MudText><b>How much?</b></MudText>
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>3–6 months of essential expenses is common</MudListItem>
+                                    <MudListItem>More if income is unpredictable</MudListItem>
+                                    <MudListItem>Less if job security is high and costs are low</MudListItem>
+                                </MudList>
+                            </MudExpansionPanel>
+
+                            <MudExpansionPanel Text="Diversification: Avoiding All‑or‑Nothing Risk">
+                                <MudText>
+                                    <b>What it means:</b> Spreading money across different investments instead of relying on one.
+                                </MudText>
+                                <MudDivider Class="my-2" />
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Different assets behave differently</MudListItem>
+                                    <MudListItem>Reduces impact of major losses</MudListItem>
+                                    <MudListItem>Encourages long‑term discipline</MudListItem>
+                                </MudList>
+                            </MudExpansionPanel>
+
+                            <MudExpansionPanel Text="Time Horizon & Compounding">
+                                <MudText>
+                                    <b>Time horizon:</b> How long before you need the money.
+                                </MudText>
+                                <MudText>
+                                    <b>Compounding:</b> Returns earn returns over time—growth accelerates.
+                                </MudText>
+                                <MudDivider Class="my-2" />
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>Longer timelines allow more risk</MudListItem>
+                                    <MudListItem>Consistency matters more than timing the market</MudListItem>
+                                </MudList>
+                            </MudExpansionPanel>
+
+                            <MudExpansionPanel Text="Rebalancing & Staying Disciplined">
+                                <MudText>
+                                    <b>Rebalancing:</b> Adjusting your portfolio back to your intended mix.
+                                </MudText>
+                                <MudDivider Class="my-2" />
+                                <MudList T="string" T="string" Dense="true">
+                                    <MudListItem>Sell what grew too large</MudListItem>
+                                    <MudListItem>Buy what fell behind</MudListItem>
+                                    <MudListItem>Rebalance periodically, not constantly</MudListItem>
+                                </MudList>
+                            </MudExpansionPanel>
+
+                        </MudExpansionPanels>
+                    </MudStack>
+                </MudPaper>
+            </MudTabPanel>
+
+        </MudTabs>
+
+        <!-- Footer -->
+        <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--mud-palette-lines-default); border-radius:12px;">
+            <MudStack Spacing="2" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.subtitle2">Ready to check your score?</MudText>
+                <MudStack Direction="Row" Spacing="2" Style="flex-wrap:wrap; justify-content:center;">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/financial-survey">
+                        Take the Survey
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/home">
+                        Return to Home
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+
+    </MudStack>
+</MudContainer>

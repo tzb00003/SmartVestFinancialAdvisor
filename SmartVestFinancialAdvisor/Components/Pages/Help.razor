@@ -1,17 +1,76 @@
 ﻿@page "/help"
 @using MudBlazor
 
-<h3>This page is still in development. Please return at a later date for this feature to be added.</h3>
-<MudGrid>
-    <MudItem xs="6"/>
-    <MudItem xs="6" >
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/home">
-            Return to Home
-        </MudButton>
-    </MudItem>
-    <MudItem xs="6" />
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6">
 
-</MudGrid>
+    <MudText Typo="Typo.h4" GutterBottom="true">
+        Help & Support
+    </MudText>
+
+    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">
+        Find answers to common questions about using your financial advisor dashboard.
+    </MudText>
+
+    <!-- Overview -->
+    <MudCard Class="mb-4">
+        <MudCardContent>
+            <MudText Typo="Typo.h6" GutterBottom="true">Getting Started</MudText>
+            <MudText Typo="Typo.body2">
+                This app helps you make responsible financial descisions based on financial data provided in a survey. Below are FAQs to answer general questions about the application.
+            </MudText>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- FAQ -->
+    <MudExpansionPanels Elevation="1" Class="mb-4">
+        <MudExpansionPanel Text="How do log in or create an account?">
+            <MudText Typo="Typo.body2">
+                Navigate to <b>Sign In</b> at the top right of the page and input your username and password. If you don't have an account click the new
+                user button to create a new account. You will need to complete the survey for your account to display your reccomendations after the first time you log in.
+            </MudText>
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="Is my financial data secure?">
+            <MudText Typo="Typo.body2">
+                Yes. All sensitive data is encrypted and handled according to industry practices. While we do store financial data to provide personalized recommendations, we do not share it 
+                with third parties. This app is soley for your personal use and is not soley for finacial advice without any strings attached.
+            </MudText>
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="How are investment recommendations generated?">
+            <MudText Typo="Typo.body2">
+                Recommendations are based on the information provided in the survey that is compared to sensus data of peers in similar age ranges as you. Your age, income, and state
+                are all taken into account to build this score and the reccomendataions are generated based on the score that is generated. Thus giving you the most
+                personalized recommendations possible.
+            </MudText>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+
+    <!-- Contact -->
+    <MudCard Class="mb-6">
+        <MudCardContent>
+            <MudText Typo="Typo.h6" GutterBottom="true">Need More Help?</MudText>
+            <MudText Typo="Typo.body2">
+                Contact support
+                <MudLink Href="mailto:tzb00003@mix.wvu.edu">
+                    here!
+                </MudLink>
+                
+            </MudText>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Navigation -->
+    <MudGrid Class="mt-6 mb-5">
+        <MudItem xs="12" Class="d-flex justify-center">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/home">
+                Return to Home
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+
+</MudContainer>
+
 @code {
-
+    // Future: dynamic FAQs, user‑specific help, live chat
 }
