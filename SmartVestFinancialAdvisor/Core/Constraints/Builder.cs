@@ -1,10 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using SmartVestFinancialAdvisor.Core.Agents;
 using SmartVestFinancialAdvisor.Core.Benchmarks;
-using SmartVestFinancialAdvisor.Core.Scoring;
 using SmartVestFinancialAdvisor.Core.Financial;
-using SmartVestFinancialAdvisor.Core.Agents; // Added for AdvisorEngine
+using SmartVestFinancialAdvisor.Core.Scoring;
 
 namespace SmartVestFinancialAdvisor.Core.Constraints
 {
@@ -12,21 +13,18 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
     {
         private readonly ScoreCalculator _scoreCalculator;
         private readonly IBenchmarkProvider _benchmarkProvider;
-        private readonly AdvisorEngine _advisorEngine; // Added orchestrator
+        private readonly AdvisorEngine _advisorEngine;
 
         public Builder(
             IBenchmarkProvider benchmarkProvider,
             ScoreCalculator scoreCalculator,
-            AdvisorEngine advisorEngine) // Injected
+            AdvisorEngine advisorEngine)
         {
             _benchmarkProvider = benchmarkProvider;
             _scoreCalculator = scoreCalculator;
             _advisorEngine = advisorEngine;
         }
-        /*
-         * Add a Getscore function
-         * 
-         */
+
         public async Task<BuildResult> Build(FinancialProfile profile)
         {
             // 1. Map to ClientProfile
@@ -62,27 +60,57 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
                 MaxCashAllocation = definition.DefaultCashAllocation
             };
 
-            // -------- FACTS (for the recommender) ----------
-            // Adjust these if your "Savings" is not liquid cash.
+            // -------- FACTS (for recommender + UI) ----------
+            var items = client.Items ?? new List<FinancialItem>();
+
+            decimal totalAssets = items.Where(i => !i.IsDebt).Sum(i => i.Amount);
+            decimal totalLiquidAssets = items.Where(i => !i.IsDebt && !i.IsRetirement).Sum(i => i.Amount);
+            decimal totalRetirementSavings = items.Where(i => !i.IsDebt && i.IsRetirement).Sum(i => i.Amount);
+
+            decimal totalDebtBalance = items.Where(i => i.IsDebt).Sum(i => i.Amount);
+            decimal totalMonthlyDebtPayments = items.Where(i => i.IsDebt).Sum(i => i.MonthlyPayment);
+
+            decimal weightedDebtRate = 0m; // FRACTION (0.07 == 7%)
+            if (totalDebtBalance > 0m)
+            {
+                weightedDebtRate = items
+                    .Where(i => i.IsDebt)
+                    .Sum(i => i.InterestRate * (i.Amount / totalDebtBalance));
+            }
+
+            // Fallbacks if items are missing
+            if (totalLiquidAssets <= 0m && client.Savings > 0m) totalLiquidAssets = client.Savings;
+            if (totalMonthlyDebtPayments <= 0m && client.Debt > 0m) totalMonthlyDebtPayments = client.Debt;
+
             decimal monthlyExpenses = client.MonthlyExpense;
-            decimal cashLike = client.Savings; // <-- if this is "cash". If it's total assets, switch to your cash property.
-            decimal emergencyMonths = monthlyExpenses > 0 ? cashLike / monthlyExpenses : 0m;
+            decimal emergencyMonths = monthlyExpenses > 0m ? totalLiquidAssets / monthlyExpenses : 0m;
 
-            // If you track APRs elsewhere, replace with your real average.
-            // You can also compute a weighted APR from client.Items if you have balances.
-            decimal avgApr = 7.0m; // sensible default
+            // RecommendationCatalog historically expects APR as percent number (7 == 7%)
+            decimal avgAprPercent = weightedDebtRate > 0m ? weightedDebtRate * 100m : 7.0m;
 
-            // If you capture these in the survey, set them here; otherwise leave defaults.
             bool hasEmployerMatch = false;
             bool highTaxBracket = false;
             bool inflationConcern = false;
 
             var facts = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
             {
+                ["MonthlyIncome"] = client.MonthlyIncome,
                 ["MonthlyExpenses"] = monthlyExpenses,
-                ["Cash"] = cashLike,
+
+                ["TotalAssets"] = totalAssets,
+                ["TotalLiquidAssets"] = totalLiquidAssets,
+                ["TotalRetirementSavings"] = totalRetirementSavings,
+
+                ["TotalDebtBalance"] = totalDebtBalance,
+                ["TotalMonthlyDebtPayments"] = totalMonthlyDebtPayments,
+
+                // Both units provided:
+                ["WeightedDebtRate"] = weightedDebtRate,         // fraction (0.07 = 7%)
+                ["AverageDebtAPR"] = avgAprPercent,              // percent number (7 = 7%)
+
+                ["Cash"] = totalLiquidAssets,
                 ["EmergencyMonths"] = emergencyMonths,
-                ["AverageDebtAPR"] = avgApr,
+
                 ["HasEmployerMatch"] = hasEmployerMatch,
                 ["IsHighTaxBracket"] = highTaxBracket,
                 ["InflationConcern"] = inflationConcern
@@ -98,7 +126,6 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
                 Facts = facts
             };
         }
-
 
         private ClientProfile MapToClientProfile(FinancialProfile profile)
         {
@@ -116,9 +143,6 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
         }
     }
 
-    /// <summary>
-    /// Container for the objects produced during the build process.
-    /// </summary>
     public class BuildResult
     {
         public FinancialScore Score { get; set; } = null!;
@@ -126,7 +150,6 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
         public PortfolioConstraints Constraints { get; set; } = null!;
         public List<AnalysisResult> Insights { get; set; } = new();
 
-        // NEW: lightweight context for the recommender
         public IDictionary<string, object?> Facts { get; set; }
             = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
     }

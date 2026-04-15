@@ -3,144 +3,157 @@ using System.Collections.Generic;
 using System.Linq;
 using SmartVestFinancialAdvisor.Components.Models;
 using SmartVestFinancialAdvisor.Core.Constraints;
+using SmartVestFinancialAdvisor.Core.Scoring;
 
 namespace SmartVestFinancialAdvisor.Components.Services
 {
     /// <summary>
-    /// Thread-safe, in-memory recommendation catalog with dynamic scoring
-    /// driven by BuildResult (risk tolerance + category subscores + optional facts).
-    /// Register as Singleton or Scoped.
+    /// In-memory recommendation catalog with dynamic scoring driven by BuildResult.
+    /// Rules:
+    /// - Uses user's risk tolerance to weight product suitability
+    /// - Blocks investing recommendations during high debt stress / negative cash flow
+    /// - Returns only Top 4 with Score10 > 5
+    /// - If none > 5, returns ONLY HYSA
+    /// - Explains "why" in Recommendation.Info
     /// </summary>
     public sealed class RecommendationCatalog : IRecommendationCatalog
     {
         private readonly object _gate = new();
         private readonly List<Recommendation> _all;
 
+        private const string HYSA = "High-Yield Savings Account (HYSA)";
 
         public RecommendationCatalog()
         {
-            // Expanded seed set: actions + investable ideas.
-            // Score10/Info are recomputed per user in For(...).
             _all = new List<Recommendation>
             {
-                // ---------- ACTIONS (high-impact hygiene items) ----------
-                //new() {
-                //    Type = "Pay Down High-Interest Debt",
-                //    Risk = "Very Low",
-                //    Score10 = 0,
-                //    Info = "Lower expensive debt first to free up cash each month and reduce risk."
-                //},
-                //new() {
-                //    Type = "Build/Top-Up Emergency Fund (HYSA/T-Bills)",
-                //    Risk = "Very Low",
-                //    Score10 = 0,
-                //    Info = "Aim for 3–6 months of expenses in a safe, easy‑to‑access account."
-                //},
-                //new() {
-                //    Type = "Max Employer 401(k) Match",
-                //    Risk = "Low",
-                //    Score10 = 0,
-                //    Info = "Don’t leave free money on the table—contribute enough to get the full match."
-                //},
-                //new() {
-                //    Type = "Increase Retirement Contributions",
-                //    Risk = "Low–Moderate",
-                //    Score10 = 0,
-                //    Info = "Boost your savings rate to stay on track for long‑term goals."
-                //},
+                // ---------------- ACTIONS ----------------
+                new()
+                {
+                    Type = "Pay Down High-Interest Debt",
+                    Risk = "Action",
+                    Score10 = 0,
+                    Info = "Prioritize paying down high-interest debt to improve cash flow and reduce financial risk."
+                },
+                new()
+                {
+                    Type = "Build/Top-Up Emergency Fund",
+                    Risk = "Action",
+                    Score10 = 0,
+                    Info = "Build 3–6 months of expenses in liquid reserves to protect against income shocks."
+                },
+                new()
+                {
+                    Type = "Max Employer 401(k) Match",
+                    Risk = "Action",
+                    Score10 = 0,
+                    Info = "If available, contribute enough to capture the full employer match (a high-value benefit)."
+                },
+                new()
+                {
+                    Type = "Increase Retirement Contributions",
+                    Risk = "Action",
+                    Score10 = 0,
+                    Info = "Increase retirement contributions to improve long-term readiness."
+                },
 
                 // ---------------- CASH & CASH‑LIKE ----------------
-                new() {
-                    Type = "High-Yield Savings Account (HYSA)",
+                new()
+                {
+                    Type = HYSA,
                     Risk = "Very Low",
                     Score10 = 0,
-                    Info = "A safe place for near‑term money that earns more than a regular savings account."
+                    Info = "Good for emergency funds and short-term goals. Typically FDIC insured (if bank-issued)."
                 },
-                new() {
+                new()
+                {
                     Type = "Treasury Bills (3–6 Months)",
                     Risk = "Very Low",
                     Score10 = 0,
-                    Info = "Short‑term U.S. government bonds—very safe with steady, predictable returns."
+                    Info = "Short-term U.S. Treasuries are a low-risk way to park cash for a few months."
                 },
-                new() {
+                new()
+                {
                     Type = "Certificates of Deposit (6–12 Months)",
                     Risk = "Very Low",
                     Score10 = 0,
-                    Info = "Lock in a fixed rate for a set time; penalties may apply for early withdrawal."
+                    Info = "Locks in a guaranteed rate for a set term; early withdrawal may incur penalties."
                 },
 
                 // -------------------- BONDS -----------------------
-                new() {
+                new()
+                {
                     Type = "Investment-Grade Bond ETF (Core Aggregate)",
                     Risk = "Low",
                     Score10 = 0,
-                    Info = "A mix of high‑quality bonds that helps steady your portfolio during market swings."
+                    Info = "Diversified high-quality bonds for income and stability."
                 },
-                new() {
-                    Type = "Treasury Ladder (3–12 Months)",
-                    Risk = "Very Low",
-                    Score10 = 0,
-                    Info = "Bonds maturing at different times, so part of your money frees up regularly."
-                },
-                new() {
+                new()
+                {
                     Type = "TIPS ETF (Inflation-Protected)",
                     Risk = "Low",
                     Score10 = 0,
-                    Info = "Bonds designed to help your money keep up with inflation."
+                    Info = "Inflation-protected bonds help preserve purchasing power."
                 },
-                new() {
+                new()
+                {
                     Type = "Municipal Bond Fund (Taxable Accounts)",
                     Risk = "Low",
                     Score10 = 0,
-                    Info = "Can reduce taxes on interest if you’re in a higher tax bracket."
+                    Info = "Potential tax-advantaged bond income (often best for higher tax brackets)."
                 },
 
                 // ------------------- EQUITIES ---------------------
-                new() {
+                new()
+                {
                     Type = "Total U.S. Stock Market Index Fund",
                     Risk = "Moderate–High",
                     Score10 = 0,
-                    Info = "Low‑cost exposure to nearly the entire U.S. stock market for long‑term growth."
+                    Info = "Broad U.S. equity exposure for long-term growth."
                 },
-                new() {
+                new()
+                {
                     Type = "S&P 500 Index Fund",
                     Risk = "Moderate–High",
                     Score10 = 0,
-                    Info = "Owns 500 large U.S. companies; a simple, low‑cost core for long‑term investing."
+                    Info = "Tracks large U.S. companies; common long-term core holding."
                 },
-                new() {
+                new()
+                {
                     Type = "Total International Stock Index Fund",
                     Risk = "High",
                     Score10 = 0,
-                    Info = "Adds companies outside the U.S. for global diversification."
+                    Info = "Diversifies beyond the U.S.; higher volatility than U.S.-only."
                 },
-                new() {
+                new()
+                {
                     Type = "Small-Cap Value Tilt ETF",
                     Risk = "High",
                     Score10 = 0,
-                    Info = "Focuses on smaller, value‑oriented companies—higher return potential with more ups and downs."
+                    Info = "Higher-volatility factor tilt; best as a smaller satellite allocation."
                 },
-                new() {
+                new()
+                {
                     Type = "REIT (Diversified)",
                     Risk = "Moderate–High",
                     Score10 = 0,
-                    Info = "Invests in real estate businesses that generate income from rent and properties."
+                    Info = "Real estate exposure for diversification; rate- and cycle-sensitive."
                 },
 
                 // ---------------- OTHER / HEDGES ------------------
-                new() {
+                new()
+                {
                     Type = "Commodities Basket",
                     Risk = "High",
                     Score10 = 0,
-                    Info = "A mix of commodities (like energy and metals) that may help during high inflation—but can be volatile."
+                    Info = "Potential inflation hedge with high volatility and tracking considerations."
                 }
             };
-
         }
 
         public IReadOnlyList<Recommendation> All
         {
-            get { lock (_gate) { return _all.ToList(); } } // snapshot
+            get { lock (_gate) { return _all.ToList(); } }
         }
 
         public void Add(Recommendation item)
@@ -159,8 +172,10 @@ namespace SmartVestFinancialAdvisor.Components.Services
         }
 
         /// <summary>
-        /// Returns a ranked list of recommendations tailored to the user's signals.
-        /// The UI will typically call .Take(4) to show Top 4.
+        /// Returns ONLY:
+        /// - Top 4 recommendations where Score10 > 5
+        /// - If none are > 5: ONLY HYSA
+        /// Also blocks investing when debt stress + negative cash flow.
         /// </summary>
         public IReadOnlyList<Recommendation> For(BuildResult result)
         {
@@ -168,204 +183,283 @@ namespace SmartVestFinancialAdvisor.Components.Services
 
             var sig = AdvisorSignals.From(result);
 
-            // Guardrails: if debt or emergency are weak, prioritize actions/cash.
-            bool needsDebtAction = sig.DebtLoadScore < 55m || sig.AverageDebtAPR >= 7.0m;
+            // KEY FIX: Only recommend debt payoff when user actually has debt.
+            bool needsDebtAction = sig.HasDebt && (sig.DebtLoadScore < 55m || sig.AverageDebtAprPercent >= 7.0m);
+
             bool needsEmergency = sig.EmergencyScore < 80m || sig.EmergencyMonths < 3m;
 
-            // Working copy per user
+            // Block investing only when debt exists and stress is real
+            bool investingBlocked =
+                sig.HasDebt &&
+                (
+                    (sig.NetCashFlow <= 0m && sig.AverageDebtAprPercent >= 7.0m)
+                    || (sig.DebtLoadScore < 45m && sig.AverageDebtAprPercent >= 10.0m)
+                );
+
+            // Working copy
             var tailored = All.Select(r => new Recommendation
             {
                 Type = r.Type,
                 Risk = r.Risk,
                 Link = r.Link,
-                Score10 = 0,  // dynamic
+                Score10 = 0,
                 Info = r.Info
             }).ToList();
 
             foreach (var rec in tailored)
             {
-                decimal s = 0m;
-                string why = string.Empty;
+                decimal score = 0m;
+                var why = new List<string>();
 
-                // --- ACTIONS ---
-                if (rec.Type.Contains("Pay Down High-Interest Debt", StringComparison.OrdinalIgnoreCase))
+                // ============ ACTIONS ============
+                if (IsType(rec, "Pay Down High-Interest Debt"))
                 {
-                    s = ScoreFromBands(
-                        strong: needsDebtAction,
-                        moderate: sig.DebtLoadScore < 70m,
-                        baseScore: 3m,
-                        strongScore: 10m,
-                        moderateScore: 7m
-                    );
-                    if (sig.AverageDebtAPR >= 12m) s = 10m; // extreme APR
-                    why = $"Debt load score {sig.DebtLoadScore:N0}/100; avg APR {sig.AverageDebtAPR:N1}%. Reducing high-cost debt improves cash flow and risk capacity.";
+                    if (!sig.HasDebt)
+                    {
+                        score = 0m;
+                        why.Add("No debt detected, so this action is not applicable.");
+                    }
+                    else
+                    {
+                        score = ScoreFromBands(
+                            strong: needsDebtAction,
+                            moderate: sig.DebtLoadScore < 70m,
+                            baseScore: 3m,
+                            strongScore: 10m,
+                            moderateScore: 7m);
+
+                        if (sig.AverageDebtAprPercent >= 12m) score = 10m;
+
+                        why.Add($"Debt load score {sig.DebtLoadScore:0}/100.");
+                        why.Add($"Avg APR {sig.AverageDebtAprPercent:0.0}%.");
+                        if (sig.NetCashFlow <= 0m) why.Add("Cash flow is negative — paying down debt is the priority.");
+                    }
                 }
-                else if (rec.Type.Contains("Build/Top-Up Emergency Fund", StringComparison.OrdinalIgnoreCase))
+                else if (IsType(rec, "Build/Top-Up Emergency Fund"))
                 {
-                    s = ScoreFromBands(
+                    score = ScoreFromBands(
                         strong: needsEmergency,
                         moderate: sig.EmergencyMonths < 6m,
                         baseScore: 4m,
                         strongScore: 10m,
-                        moderateScore: 7m
-                    );
-                    why = $"Emergency fund covers {sig.EmergencyMonths:N1} months (target 3–6). Cash-like reserves increase resilience.";
+                        moderateScore: 7m);
+
+                    why.Add($"Emergency coverage {sig.EmergencyMonths:0.0} months (target 3–6).");
                 }
-                else if (rec.Type.Contains("Max Employer 401(k) Match", StringComparison.OrdinalIgnoreCase))
+                else if (IsType(rec, "Max Employer 401(k) Match"))
                 {
-                    s = (sig.HasEmployerMatch ? 9m : 6m);
-                    why = sig.HasEmployerMatch
-                        ? "Uncaptured employer match is a guaranteed, risk-free return; prioritize contributions to secure full match."
-                        : "If employer match exists, capturing it is a priority. Otherwise this remains a solid retirement saving action.";
+                    score = sig.HasEmployerMatch ? 9m : 6m;
+                    why.Add(sig.HasEmployerMatch
+                        ? "Employer match available — high-value priority."
+                        : "If your employer offers a match, capturing it is a priority.");
                 }
-                else if (rec.Type.Contains("Increase Retirement Contributions", StringComparison.OrdinalIgnoreCase))
+                else if (IsType(rec, "Increase Retirement Contributions"))
                 {
-                    s = LerpByDeficit(sig.RetirementScore, lowIsStronger: true); // lower score -> higher priority
-                    why = $"Retirement readiness score {sig.RetirementScore:N0}/100; increasing savings rate can close the gap.";
+                    score = LerpByDeficit(sig.RetirementScore, lowIsStronger: true);
+                    why.Add($"Retirement readiness score {sig.RetirementScore:0}/100.");
                 }
 
-                // --- CASH / CASH-LIKE ---
-                else if (rec.Type.Contains("High-Yield Savings Account", StringComparison.OrdinalIgnoreCase))
+                // ============ CASH ============
+                else if (IsType(rec, HYSA))
                 {
-                    s = needsEmergency ? 9m : (sig.RiskTolerance <= 0.40m ? 8m : 5m);
-                    why = needsEmergency
-                        ? "Boost emergency reserves in HYSA to reach 3–6 months of expenses."
-                        : "Maintain liquidity for near-term needs; HYSA offers competitive yield with FDIC coverage if bank-issued.";
+                    score = needsEmergency ? 9m : (sig.RiskTolerance <= 0.40m ? 8m : 5m);
+                    why.Add(needsEmergency ? "Strengthen emergency reserves." : "Maintain liquidity for near-term needs.");
                 }
-                else if (rec.Type.Contains("Treasury Bills", StringComparison.OrdinalIgnoreCase))
+                else if (Contains(rec, "Treasury Bills"))
                 {
-                    s = needsEmergency ? 8m : (sig.RiskTolerance <= 0.40m ? 8m : 6m);
-                    why = "Short-duration Treasuries provide liquidity and low credit risk; interest is state-tax exempt.";
+                    score = needsEmergency ? 8m : (sig.RiskTolerance <= 0.40m ? 8m : 6m);
+                    why.Add("Low-risk short-term option for cash.");
                 }
-                else if (rec.Type.Contains("Certificates of Deposit", StringComparison.OrdinalIgnoreCase))
+                else if (Contains(rec, "Certificates of Deposit"))
                 {
-                    s = (sig.EmergencyMonths >= 3m ? 7m : 5m);
-                    why = "For funds beyond immediate reserves, CDs can lock in yields; consider laddering to manage liquidity.";
+                    score = sig.EmergencyMonths >= 3m ? 7m : 5m;
+                    why.Add("Useful for cash beyond immediate reserves (consider laddering).");
                 }
 
-                // --- BONDS ---
-                else if (rec.Type.Contains("Investment-Grade Bond ETF", StringComparison.OrdinalIgnoreCase))
+                // ============ BONDS ============
+                else if (Contains(rec, "Investment-Grade Bond ETF"))
                 {
-                    s = sig.RiskTolerance <= 0.40m ? 9m : (sig.RiskTolerance <= 0.70m ? 7m : 5m);
-                    why = "Core IG bonds provide diversification and dampen equity volatility; align with conservative to balanced risk.";
+                    score = sig.RiskTolerance <= 0.40m ? 9m : (sig.RiskTolerance <= 0.70m ? 7m : 5m);
+                    why.Add("Adds stability and diversification.");
                 }
-                else if (rec.Type.Contains("Treasury Ladder", StringComparison.OrdinalIgnoreCase))
+                else if (Contains(rec, "TIPS ETF"))
                 {
-                    s = (sig.EmergencyMonths >= 3m ? 8m : 6m);
-                    why = "Laddering 3–12 month Treasuries balances yield and rolling liquidity.";
+                    score = sig.InflationConcern ? 8m : 6m;
+                    why.Add("Helps protect purchasing power.");
                 }
-                else if (rec.Type.Contains("TIPS ETF", StringComparison.OrdinalIgnoreCase))
+                else if (Contains(rec, "Municipal Bond Fund"))
                 {
-                    s = sig.InflationConcern ? 8m : 6m;
-                    why = "Inflation-protected securities help preserve real purchasing power.";
-                }
-                else if (rec.Type.Contains("Municipal Bond Fund", StringComparison.OrdinalIgnoreCase))
-                {
-                    s = sig.IsHighTaxBracket ? 8m : 5m;
-                    why = sig.IsHighTaxBracket
-                        ? "Tax-exempt income can be attractive in higher marginal tax brackets."
-                        : "Consider munis primarily when in a higher marginal tax bracket.";
+                    score = sig.IsHighTaxBracket ? 8m : 5m;
+                    why.Add(sig.IsHighTaxBracket
+                        ? "Tax-advantaged income may help at higher brackets."
+                        : "Most useful in higher marginal tax brackets.");
                 }
 
-                // --- EQUITIES ---
-                else if (rec.Type.Contains("Total U.S. Stock Market", StringComparison.OrdinalIgnoreCase))
+                // ============ EQUITIES ============
+                else if (Contains(rec, "Total U.S. Stock Market"))
                 {
-                    s = sig.RiskTolerance switch
+                    score = sig.RiskTolerance switch
                     {
                         <= 0.40m => 5m,
                         <= 0.70m => 8m,
                         _ => 9m
                     };
-                    if (needsEmergency || needsDebtAction) s = Math.Max(0m, s - 2m);
-                    why = "Broad, low-cost equity exposure; adjust weight to your risk tolerance and liquidity needs.";
+                    why.Add("Broad long-term growth exposure.");
                 }
-                else if (rec.Type.Contains("S&P 500 Index", StringComparison.OrdinalIgnoreCase))
+                else if (Contains(rec, "S&P 500"))
                 {
-                    s = sig.RiskTolerance switch
+                    score = sig.RiskTolerance switch
                     {
                         <= 0.40m => 5m,
                         <= 0.70m => 7m,
                         _ => 9m
                     };
-                    if (needsEmergency || needsDebtAction) s = Math.Max(0m, s - 2m);
-                    why = "Large-cap U.S. equities; core growth engine for long-term horizons.";
+                    why.Add("Large-cap U.S. equities for long-term growth.");
                 }
-                else if (rec.Type.Contains("Total International", StringComparison.OrdinalIgnoreCase))
+                else if (Contains(rec, "Total International"))
                 {
-                    s = sig.RiskTolerance <= 0.40m ? 3m : (sig.RiskTolerance <= 0.70m ? 6m : 7m);
-                    if (needsEmergency || needsDebtAction) s = Math.Max(0m, s - 1m);
-                    why = "International diversification adds currency and regional exposure; higher volatility than U.S.-only.";
+                    score = sig.RiskTolerance <= 0.40m ? 3m : (sig.RiskTolerance <= 0.70m ? 6m : 7m);
+                    why.Add("International diversification.");
                 }
-                else if (rec.Type.Contains("Small-Cap Value Tilt", StringComparison.OrdinalIgnoreCase))
+                else if (Contains(rec, "Small-Cap Value"))
                 {
-                    s = sig.RiskTolerance >= 0.70m && !needsDebtAction && !needsEmergency ? 7m : 3m;
-                    why = "Factor tilt can improve expected returns with higher volatility; consider as a satellite allocation.";
+                    score = (sig.RiskTolerance >= 0.70m && !needsDebtAction && !needsEmergency) ? 7m : 3m;
+                    why.Add("Higher volatility factor tilt; best as a satellite.");
                 }
-                else if (rec.Type.Contains("REIT", StringComparison.OrdinalIgnoreCase))
+                else if (Contains(rec, "REIT"))
                 {
-                    s = sig.RiskTolerance >= 0.50m && !needsDebtAction ? 6m : 3m;
-                    why = "Real estate income; sensitive to rates and cycles; size as a small satellite position.";
+                    score = (sig.RiskTolerance >= 0.50m && !needsDebtAction) ? 6m : 3m;
+                    why.Add("Real estate diversification; rate-sensitive.");
                 }
 
-                // --- OTHER / HEDGES ---
-                else if (rec.Type.Contains("Commodities Basket", StringComparison.OrdinalIgnoreCase))
+                // ============ OTHER ============
+                else if (Contains(rec, "Commodities Basket"))
                 {
-                    s = sig.RiskTolerance >= 0.70m && !needsDebtAction ? 6m : 3m;
-                    why = "Potential inflation hedge with higher volatility and tracking considerations.";
+                    score = (sig.RiskTolerance >= 0.70m && !needsDebtAction) ? 6m : 3m;
+                    why.Add("Potential inflation hedge with higher volatility.");
                 }
 
-                // Normalize and assign
-                s = Math.Clamp(s, 0m, 10m);
-                rec.Score10 = (int)Math.Round(s, MidpointRounding.AwayFromZero);
-                rec.Info = why;
+                // Risk-match factor for non-actions
+                if (!IsAction(rec))
+                {
+                    var match = RiskMatch(sig.RiskTolerance, rec.Risk);
+                    score *= match;
+
+                    why.Add($"Risk preference: {sig.RiskLevelLabel}.");
+                    if (match < 0.75m) why.Add("Lowered because it’s not a strong match to your risk level.");
+                }
+
+                // If investing is blocked, suppress investments entirely
+                if (investingBlocked && IsInvestment(rec))
+                {
+                    score = 0m;
+                }
+
+                // If debt/emergency needs exist, de-prioritize high-volatility assets
+                if ((needsDebtAction || needsEmergency) && IsHighVolInvestment(rec))
+                {
+                    score = Math.Max(0m, score - 2m);
+                }
+
+                score = Math.Clamp(score, 0m, 10m);
+                rec.Score10 = (int)Math.Round(score, MidpointRounding.AwayFromZero);
+
+                rec.Info = why.Count > 0
+                    ? string.Join(" ", why.Select(x => x.EndsWith(".") ? x : x + "."))
+                    : "Recommended based on your financial profile.";
             }
 
-            // Risk-aligned filtering
-            var filtered = tailored.Where(r =>
+            // If investing is blocked: only allow Actions + HYSA
+            if (investingBlocked)
             {
-                if (sig.RiskTolerance <= 0.40m)
-                {
-                    // Conservative: emphasize Very Low/Low and essential actions
-                    return r.Risk.Contains("Very Low", StringComparison.OrdinalIgnoreCase)
-                           || r.Risk.Contains("Low", StringComparison.OrdinalIgnoreCase)
-                           || r.Type.StartsWith("Pay Down", StringComparison.OrdinalIgnoreCase)
-                           || r.Type.StartsWith("Build/Top-Up Emergency", StringComparison.OrdinalIgnoreCase)
-                           || r.Type.StartsWith("Max Employer", StringComparison.OrdinalIgnoreCase)
-                           || r.Type.StartsWith("Increase Retirement", StringComparison.OrdinalIgnoreCase);
-                }
-                else if (sig.RiskTolerance >= 0.70m)
-                {
-                    // Aggressive: include Moderate–High/High + essential actions if needed
-                    return r.Risk.Contains("Moderate", StringComparison.OrdinalIgnoreCase)
-                           || r.Risk.Contains("High", StringComparison.OrdinalIgnoreCase)
-                           || r.Risk.Contains("Moderate–High", StringComparison.OrdinalIgnoreCase)
-                           || r.Type.StartsWith("Pay Down", StringComparison.OrdinalIgnoreCase)
-                           || r.Type.StartsWith("Build/Top-Up Emergency", StringComparison.OrdinalIgnoreCase);
-                }
-                else
-                {
-                    // Balanced: broad mix; exclude niche high-vol unless score is strong
-                    if (r.Risk.Contains("High", StringComparison.OrdinalIgnoreCase) || r.Risk.Contains("Moderate–High", StringComparison.OrdinalIgnoreCase))
-                        return r.Score10 >= 6;
-                    return true;
-                }
-            });
+                var blocked = tailored
+                    .Where(r => IsAction(r) || IsType(r, HYSA))
+                    .Where(r => r.Score10 > 5)
+                    .OrderByDescending(r => r.Score10)
+                    .ThenBy(r => r.Type, StringComparer.OrdinalIgnoreCase)
+                    .Take(4)
+                    .ToList();
 
-            // Rank and return positives only (UI will Take(4))
-            var ranked = filtered
-                .Where(r => r.Score10 > 0)
+                if (blocked.Count > 0) return blocked;
+
+                return new List<Recommendation> { FallbackHysa(sig, investingBlocked: true) };
+            }
+
+            // Order everything by recommendation strength (best first)
+            var ordered = tailored
                 .OrderByDescending(r => r.Score10)
-                .ThenBy(r => r.Risk, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(r => r.Type, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            return ranked;
+            // Strong recommendations (used for initial screen)
+            var strong = ordered.Where(r => r.Score10 > 5).ToList();
+
+            // If nothing is strong at all, return ONLY HYSA
+            if (strong.Count == 0)
+                return new List<Recommendation> { FallbackHysa(sig, investingBlocked: false) };
+
+            // ✅ IMPORTANT:
+            // Return ALL ordered recommendations.
+            // UI controls how many are shown (Generate more).
+            return ordered;
         }
 
-        // ----------------- helpers -----------------
+        // ---------------- Helpers (Part 2 continues...) ----------------
+        private static Recommendation FallbackHysa(AdvisorSignals sig, bool investingBlocked)
+        {
+            var reason = investingBlocked
+                ? "We’re prioritizing stability first due to debt/cash-flow pressure—focus on liquidity and reducing risk before investing."
+                : "No options scored above 5 right now—starting with a safe, liquid option is best.";
+
+            return new Recommendation
+            {
+                Type = HYSA,
+                Risk = "Very Low",
+                Score10 = 6,
+                Link = null,
+                Info = $"{reason} Emergency coverage: {sig.EmergencyMonths:0.0} months. Risk preference: {sig.RiskLevelLabel}."
+            };
+        }
+
+        private static bool IsType(Recommendation r, string type)
+            => string.Equals(r.Type, type, StringComparison.OrdinalIgnoreCase);
+
+        private static bool Contains(Recommendation r, string text)
+            => r.Type?.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0;
+
+        private static bool IsAction(Recommendation r)
+            => string.Equals(r.Risk, "Action", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsInvestment(Recommendation r)
+            => !IsAction(r) && !IsCashLike(r);
+
+        private static bool IsCashLike(Recommendation r)
+            => r.Risk.Contains("Very Low", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsHighVolInvestment(Recommendation r)
+            => r.Risk.Contains("High", StringComparison.OrdinalIgnoreCase)
+               || r.Risk.Contains("Moderate–High", StringComparison.OrdinalIgnoreCase)
+               || r.Risk.Contains("Moderate-High", StringComparison.OrdinalIgnoreCase);
+
+        private static decimal RiskMatch(decimal riskTolerance, string riskLabel)
+        {
+            var product = riskLabel switch
+            {
+                var x when x.Contains("Very Low", StringComparison.OrdinalIgnoreCase) => 0.20m,
+                var x when x.Contains("Low", StringComparison.OrdinalIgnoreCase) => 0.35m,
+                var x when x.Contains("Moderate", StringComparison.OrdinalIgnoreCase) && x.Contains("High", StringComparison.OrdinalIgnoreCase) => 0.75m,
+                var x when x.Contains("Moderate", StringComparison.OrdinalIgnoreCase) => 0.55m,
+                var x when x.Contains("High", StringComparison.OrdinalIgnoreCase) => 0.90m,
+                _ => 0.50m
+            };
+
+            var dist = Math.Abs(riskTolerance - product);
+            var match = 1.0m - (dist / 0.90m);
+            return Math.Clamp(match, 0.50m, 1.05m);
+        }
 
         private static int LerpByDeficit(decimal score100, bool lowIsStronger)
         {
-            // Map 0..100 -> 10..1 (if lowIsStronger), else 1..10
             var t = Math.Clamp(score100 / 100m, 0m, 1m);
             var v = lowIsStronger ? (10m - 9m * t) : (1m + 9m * t);
             return (int)Math.Round(v, MidpointRounding.AwayFromZero);
@@ -374,37 +468,64 @@ namespace SmartVestFinancialAdvisor.Components.Services
         private static decimal ScoreFromBands(bool strong, bool moderate, decimal baseScore, decimal strongScore, decimal moderateScore)
             => strong ? strongScore : (moderate ? moderateScore : baseScore);
 
-        // ---------- Signals extractor (SubScores + optional Facts) ----------
-
+        // ---------- Signals extractor ----------
         private sealed record AdvisorSignals(
             decimal RiskTolerance,
+            string RiskLevelLabel,
             decimal DebtLoadScore,
             decimal EmergencyScore,
             decimal EmergencyMonths,
             decimal RetirementScore,
-            decimal AverageDebtAPR,
+            decimal AverageDebtAprPercent,
+            decimal NetCashFlow,
             bool HasEmployerMatch,
             bool InflationConcern,
-            bool IsHighTaxBracket
+            bool IsHighTaxBracket,
+            bool HasDebt
         )
         {
             public static AdvisorSignals From(BuildResult r)
             {
-                var rt = (decimal)(r.Constraints?.RiskTolerance ?? 0.5m);
+                var rt = r.Constraints?.RiskTolerance ?? 0.50m;
+                var riskLabel = rt switch
+                {
+                    <= 0.40m => "Low",
+                    <= 0.70m => "Medium",
+                    _ => "High"
+                };
 
-                // Category scores from FinancialScore.SubScores
-                decimal debtLoadScore = GetCategoryScoreFromSubScores(r.Score?.SubScores, "Debt Load") ?? 50m;
-                decimal emergencyScore = GetCategoryScoreFromSubScores(r.Score?.SubScores, "Emergency Fund") ?? 50m;
-                decimal retirementScore = GetCategoryScoreFromSubScores(r.Score?.SubScores, "Retirement Readiness") ?? 50m;
+                var sub = r.Score?.SubScores;
 
-                // Facts (raw numbers) — optional, falls back safely if null
-                var facts = (r as dynamic)?.Facts as IDictionary<string, object?>; // tolerate if Facts not yet added
+                decimal debtLoadScore = GetSubScore(sub, "Debt Load") ?? 50m;
+                decimal emergencyScore = GetSubScore(sub, "Emergency Fund") ?? 50m;
+                decimal retirementScore = GetSubScore(sub, "Retirement Readiness") ?? 50m;
 
-                decimal emergencyMonths = GetDecimal(facts, "EmergencyMonths")
-                                          ?? ComputeEmergencyMonths(facts)
-                                          ?? 0m;
+                var facts = r.Facts;
 
-                decimal avgApr = GetDecimal(facts, "AverageDebtAPR") ?? 7.0m;
+                // Detect whether the user actually has debt
+                var totalDebtBalance = GetDecimal(facts, "TotalDebtBalance") ?? 0m;
+                var monthlyDebtPayments = GetDecimal(facts, "TotalMonthlyDebtPayments") ?? 0m;
+                bool hasDebt = totalDebtBalance > 0m || monthlyDebtPayments > 0m;
+
+                decimal emergencyMonths =
+                    GetDecimal(facts, "EmergencyMonths")
+                    ?? ComputeEmergencyMonths(facts)
+                    ?? 0m;
+
+                // APR may be fraction (0.07) or percent (7). If NO debt, APR = 0.
+                decimal aprRaw =
+                    hasDebt
+                        ? (GetDecimal(facts, "WeightedDebtRate")
+                           ?? GetDecimal(facts, "AverageDebtAPR")
+                           ?? 7.0m)
+                        : 0m;
+
+                decimal aprPercent = aprRaw <= 1.0m ? aprRaw * 100m : aprRaw;
+
+                var monthlyIncome = GetDecimal(facts, "MonthlyIncome") ?? 0m;
+                var monthlyExpenses = GetDecimal(facts, "MonthlyExpenses") ?? GetDecimal(facts, "MonthlyExpense") ?? 0m;
+
+                decimal netCashFlow = monthlyIncome - (monthlyExpenses + monthlyDebtPayments);
 
                 bool hasMatch = GetBool(facts, "HasEmployerMatch") ?? false;
                 bool inflationConcern = GetBool(facts, "InflationConcern") ?? false;
@@ -412,66 +533,42 @@ namespace SmartVestFinancialAdvisor.Components.Services
 
                 return new AdvisorSignals(
                     RiskTolerance: rt,
+                    RiskLevelLabel: riskLabel,
                     DebtLoadScore: Clamp0To100(debtLoadScore),
                     EmergencyScore: Clamp0To100(emergencyScore),
                     EmergencyMonths: emergencyMonths,
                     RetirementScore: Clamp0To100(retirementScore),
-                    AverageDebtAPR: avgApr,
+                    AverageDebtAprPercent: aprPercent,
+                    NetCashFlow: netCashFlow,
                     HasEmployerMatch: hasMatch,
                     InflationConcern: inflationConcern,
-                    IsHighTaxBracket: highTax
+                    IsHighTaxBracket: highTax,
+                    HasDebt: hasDebt
                 );
             }
 
             private static decimal Clamp0To100(decimal v) => Math.Min(100m, Math.Max(0m, v));
 
-            /// <summary>
-            /// Robustly extracts a category score (0..100) from FinancialScore.SubScores,
-            /// tolerating different SubScore property names: Name/Area, Score/Score100/RawScore,
-            /// or (last resort) WeightedScore divided by Weight when available.
-            /// </summary>
-            private static decimal? GetCategoryScoreFromSubScores(IReadOnlyList<object>? subScores, string categoryName)
+            private static decimal? GetSubScore(IReadOnlyList<SubScore>? subScores, string name)
             {
                 if (subScores is null) return null;
+                return subScores.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase))?.RawScore;
+            }
 
-                foreach (var item in subScores)
+            private static decimal? GetDecimal(IDictionary<string, object?>? facts, string key)
+                => facts != null && facts.TryGetValue(key, out var v) ? ToDecimal(v) : null;
+
+            private static bool? GetBool(IDictionary<string, object?>? facts, string key)
+            {
+                if (facts == null || !facts.TryGetValue(key, out var v) || v is null) return null;
+                return v switch
                 {
-                    var t = item.GetType();
-
-                    var nameProp = t.GetProperty("Name") ?? t.GetProperty("Area");
-                    var name = nameProp?.GetValue(item) as string;
-                    if (string.IsNullOrWhiteSpace(name) ||
-                        !string.Equals(name, categoryName, StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    // Prefer unweighted score-like fields
-                    var scoreProp = t.GetProperty("Score100")
-                                 ?? t.GetProperty("Score")
-                                 ?? t.GetProperty("RawScore")
-                                 ?? t.GetProperty("Value");
-                    if (scoreProp is not null)
-                    {
-                        var raw = scoreProp.GetValue(item);
-                        if (ToDecimal(raw) is decimal v) return v;
-                    }
-
-                    // Fallback: compute from WeightedScore / Weight when present
-                    var wScoreProp = t.GetProperty("WeightedScore");
-                    var weightProp = t.GetProperty("Weight");
-
-                    if (wScoreProp is not null && weightProp is not null)
-                    {
-                        var wRaw = ToDecimal(wScoreProp.GetValue(item));
-                        var w = ToDecimal(weightProp.GetValue(item));
-                        if (wRaw is decimal ws && w is decimal wt && wt > 0m)
-                        {
-                            var est = ws / wt; // approximate back to 0..100
-                            return Math.Min(100m, Math.Max(0m, est));
-                        }
-                    }
-                }
-
-                return null;
+                    bool b => b,
+                    string s when bool.TryParse(s, out var b2) => b2,
+                    int i => i != 0,
+                    long l => l != 0,
+                    _ => (bool?)null
+                };
             }
 
             private static decimal? ToDecimal(object? raw) => raw switch
@@ -486,30 +583,12 @@ namespace SmartVestFinancialAdvisor.Components.Services
                 _ => null
             };
 
-            // ---- Facts helpers (safe if Facts is null or missing keys) ----
-
-            private static decimal? GetDecimal(IDictionary<string, object?>? facts, string key)
-                => facts is not null && facts.TryGetValue(key, out var v) ? ToDecimal(v) : null;
-
-            private static bool? GetBool(IDictionary<string, object?>? facts, string key)
-            {
-                if (facts is null || !facts.TryGetValue(key, out var v) || v is null) return null;
-                return v switch
-                {
-                    bool b => b,
-                    string s when bool.TryParse(s, out var b2) => b2,
-                    int i => i != 0,
-                    long l => l != 0,
-                    _ => (bool?)null
-                };
-            }
-
             private static decimal? ComputeEmergencyMonths(IDictionary<string, object?>? facts)
             {
-                var cash = GetDecimal(facts, "Cash") ?? GetDecimal(facts, "LiquidAssets");
-                var monthly = GetDecimal(facts, "MonthlyExpenses") ?? GetDecimal(facts, "Expenses");
+                var cash = GetDecimal(facts, "Cash") ?? GetDecimal(facts, "TotalLiquidAssets");
+                var monthly = GetDecimal(facts, "MonthlyExpenses") ?? GetDecimal(facts, "MonthlyExpense");
                 if (cash is null || monthly is null || monthly <= 0m) return null;
-                return cash / monthly;
+                return cash.Value / monthly.Value;
             }
         }
     }
