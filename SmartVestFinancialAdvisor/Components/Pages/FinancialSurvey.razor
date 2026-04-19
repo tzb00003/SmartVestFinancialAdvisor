@@ -9,168 +9,62 @@
 
 <MudPaper Class="mx-auto my-6 p-6" Elevation="2" Style="max-width: 980px;">
     <MudStack Spacing="2">
-        <MudText Typo="Typo.h5" Class="mb-1">
-            Financial Survey
-        </MudText>
+
+        <MudText Typo="Typo.h5">Financial Survey</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            Please fill in all required fields. Your responses help us understand your financial profile.
+            Please fill in all required fields. Monthly payments are optional. If skipped, we assume $0.
         </MudText>
 
-        <!-- CHANGED: Use OnValidationChanged (bool) -->
+        <!-- ================= REQUIRED FORM (BASICS + SAVINGS + RISK) ================= -->
         <MudForm @ref="_form"
                  Model="vm.Model"
                  OnValidationChanged="OnValidationChanged"
                  Immediate="true">
 
+            <!-- ================= BASICS (REQUIRED) ================= -->
+            <MudText Typo="Typo.subtitle1" Class="mt-2">Basics (Required)</MudText>
+
             <MudGrid Spacing="2">
-                <!-- Monthly Income -->
                 <MudItem xs="12" md="6">
                     <MudNumericField T="decimal?"
                                      @bind-Value="vm.Model.MonthlyIncome"
-                                     For="@(() => vm.Model.MonthlyIncome)"
                                      Label="Monthly Income (Gross)"
-                                     Placeholder="e.g., 7,500"
                                      Variant="Variant.Outlined"
                                      Margin="Margin.Dense"
-                                     Min="0"
-                                     Step="100"
-                                     Required="true"
-                                     RequiredError="Monthly income is required"
-                                     InputMode="InputMode.numeric"
-                                     DebounceInterval="150"
-                                     HideSpinButtons="true"
+                                     Required
                                      Format="C0"
-                                     Culture="@CultureInfo.CurrentCulture">
-                        <AdornmentStartContent>
-                            <MudText>$</MudText>
-                        </AdornmentStartContent>
-                        <HelperText>Gross income before taxes and deductions (per month).</HelperText>
-                    </MudNumericField>
+                                     Culture="@CultureInfo.CurrentCulture" />
                 </MudItem>
 
-                <!-- Savings -->
-                <MudItem xs="12" md="6">
-                    <MudNumericField T="decimal?"
-                                     @bind-Value="vm.Model.Savings"
-                                     For="@(() => vm.Model.Savings)"
-                                     Label="Savings (Liquid)"
-                                     Placeholder="e.g., 25,000"
-                                     Variant="Variant.Outlined"
-                                     Margin="Margin.Dense"
-                                     Min="0"
-                                     Step="500"
-                                     Required="true"
-                                     RequiredError="Savings is required"
-                                     InputMode="InputMode.numeric"
-                                     DebounceInterval="150"
-                                     HideSpinButtons="true"
-                                     Format="C0"
-                                     Culture="@CultureInfo.CurrentCulture">
-                        <AdornmentStartContent>
-                            <MudText>$</MudText>
-                        </AdornmentStartContent>
-                        <HelperText>Cash &amp; equivalents (e.g., checking, savings, money market).</HelperText>
-                    </MudNumericField>
-                </MudItem>
-
-                <!-- Total Debt Payments (Monthly) -->
-                <MudItem xs="12" md="6">
-                    <MudNumericField T="decimal?"
-                                     @bind-Value="vm.Model.Debt"
-                                     For="@(() => vm.Model.Debt)"
-                                     Label="Debt Payments (Monthly)"
-                                     Placeholder="e.g., 1,200"
-                                     Variant="Variant.Outlined"
-                                     Margin="Margin.Dense"
-                                     Min="0"
-                                     Step="50"
-                                     Required="true"
-                                     RequiredError="Total monthly debt payments are required"
-                                     InputMode="InputMode.numeric"
-                                     DebounceInterval="150"
-                                     HideSpinButtons="true"
-                                     Format="C0"
-                                     Culture="@CultureInfo.CurrentCulture">
-                        <AdornmentStartContent>
-                            <MudText>$</MudText>
-                        </AdornmentStartContent>
-                        <HelperText>Sum of monthly payments for liabilities.</HelperText>
-                    </MudNumericField>
-                </MudItem>
-
-                <!-- Monthly Living Expenses -->
                 <MudItem xs="12" md="6">
                     <MudNumericField T="decimal?"
                                      @bind-Value="vm.Model.MonthlyExpense"
-                                     For="@(() => vm.Model.MonthlyExpense)"
                                      Label="Monthly Living Expenses"
-                                     Placeholder="e.g., 2,800"
                                      Variant="Variant.Outlined"
                                      Margin="Margin.Dense"
-                                     Min="0"
-                                     Step="50"
-                                     Required="true"
-                                     RequiredError="Monthly living expenses are required"
-                                     InputMode="InputMode.numeric"
-                                     DebounceInterval="150"
-                                     HideSpinButtons="true"
+                                     Required
                                      Format="C0"
-                                     Culture="@CultureInfo.CurrentCulture">
-                        <AdornmentStartContent>
-                            <MudText>$</MudText>
-                        </AdornmentStartContent>
-                        <HelperText>Housing, utilities, food, childcare, insurance, etc.</HelperText>
-                    </MudNumericField>
+                                     Culture="@CultureInfo.CurrentCulture" />
                 </MudItem>
 
-                <!-- Risk Level -->
-                <MudItem xs="12" md="6">
-                    <MudSelect T="RiskLevel"
-                               @bind-Value="vm.Model.RiskLevel"
-                               For="@(() => vm.Model.RiskLevel)"
-                               Label="Risk Level"
-                               Variant="Variant.Outlined"
-                               Margin="Margin.Dense"
-                               Dense="true"
-                               AnchorOrigin="Origin.BottomCenter">
-                        <MudSelectItem T="RiskLevel" Value="RiskLevel.Low">Low</MudSelectItem>
-                        <MudSelectItem T="RiskLevel" Value="RiskLevel.Med">Med</MudSelectItem>
-                        <MudSelectItem T="RiskLevel" Value="RiskLevel.High">High</MudSelectItem>
-                    </MudSelect>
-                </MudItem>
-
-                <!-- Age -->
                 <MudItem xs="12" md="6">
                     <MudNumericField T="int?"
                                      @bind-Value="vm.Model.Age"
-                                     For="@(() => vm.Model.Age)"
                                      Label="Age"
-                                     Placeholder="e.g., 35"
                                      Variant="Variant.Outlined"
                                      Margin="Margin.Dense"
+                                     Required
                                      Min="18"
-                                     Max="120"
-                                     Step="1"
-                                     Required="true"
-                                     RequiredError="Age is required"
-                                     InputMode="InputMode.numeric"
-                                     DebounceInterval="150"
-                                     HideSpinButtons="true" />
+                                     Max="120" />
                 </MudItem>
 
-                <!-- State -->
                 <MudItem xs="12" md="6">
                     <MudSelect T="string"
                                @bind-Value="vm.Model.State"
-                               For="@(() => vm.Model.State)"
                                Label="State"
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense"
-                               Dense="true"
-                               Required="true"
-                               RequiredError="State is required"
-                               SearchFunc="@((string text) => Task.FromResult(vm.States.Where(s => s.Contains(text, StringComparison.OrdinalIgnoreCase)).ToList()))"
-                               ToStringFunc="@(s => s)">
+                               Required>
                         @foreach (var s in vm.States)
                         {
                             <MudSelectItem Value="@s">@s</MudSelectItem>
@@ -181,256 +75,354 @@
 
             <MudDivider Class="my-4" />
 
-            <!-- Financial Items -->
-            <MudStack Spacing="1">
-                <MudText Typo="Typo.subtitle1">Financial Items</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    Add assets and liabilities. Use interest rate as a decimal (e.g., 0.05 for 5%).
-                </MudText>
+            <!-- ================= SAVINGS (REQUIRED) ================= -->
+            <MudText Typo="Typo.subtitle1">Savings (Required)</MudText>
+            <MudAlert Severity="Severity.Info" Dense="true">
+                Liquid Assets should <b>exclude</b> Emergency Fund (tracked separately).
+                We’ll sum these into Total Savings and also pass them as separate items for scoring.
+            </MudAlert>
 
-                <MudTable Items="vm.Model.Items" Dense="true" Elevation="0" Hover="false" Bordered="true" Striped="false">
-                    <HeaderContent>
-                        <MudTh>Label</MudTh>
-                        <MudTh class="text-right">Amount</MudTh>
-                        <MudTh class="text-right">Monthly Payment</MudTh>
-                        <MudTh class="text-right">Interest Rate</MudTh>
-                        <MudTh class="text-center">Is Debt</MudTh>
-                        <MudTh class="text-center">Is Retirement</MudTh>
-                        <MudTh></MudTh>
-                    </HeaderContent>
+            <MudGrid Spacing="2" Class="mt-2">
+                <MudItem xs="12" md="4">
+                    <MudNumericField T="decimal?"
+                                     @bind-Value="_emergencyFund"
+                                     Label="Emergency Fund Amount"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Required
+                                     Format="C0"
+                                     Culture="@CultureInfo.CurrentCulture" />
+                </MudItem>
 
-                    <RowTemplate>
-                        <MudTd DataLabel="Label" Class="w-40">
-                            <MudTextField @bind-Value="@context.Label"
-                                          Placeholder="e.g., 401(k), Auto Loan"
-                                          Variant="Variant.Outlined"
-                                          Margin="Margin.Dense"
-                                          Immediate="true"
-                                          Required="true"
-                                          RequiredError="Label is required" />
-                        </MudTd>
+                <MudItem xs="12" md="4">
+                    <MudNumericField T="decimal?"
+                                     @bind-Value="_retirementSavings"
+                                     Label="Retirement Amount"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Required
+                                     Format="C0"
+                                     Culture="@CultureInfo.CurrentCulture" />
+                </MudItem>
 
-                        <MudTd DataLabel="Amount" Class="w-32">
-                            <MudNumericField T="decimal?"
-                                             @bind-Value="@context.Amount"
-                                             Variant="Variant.Outlined"
-                                             Margin="Margin.Dense"
-                                             Min="0"
-                                             Step="100"
-                                             InputMode="InputMode.numeric"
-                                             HideSpinButtons="true"
-                                             Adornment="Adornment.Start"
-                                             AdornmentIcon="@Icons.Material.Filled.AttachMoney"
-                                             Immediate="true"
-                                             Format="C0"
-                                             Culture="@CultureInfo.CurrentCulture">
-                                <HelperText>Current balance/value</HelperText>
-                            </MudNumericField>
-                        </MudTd>
+                <MudItem xs="12" md="4">
+                    <MudNumericField T="decimal?"
+                                     @bind-Value="_liquidAssetsExEmergency"
+                                     Label="Total Liquid Assets (Excluding Emergency Fund)"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Required
+                                     Format="C0"
+                                     Culture="@CultureInfo.CurrentCulture" />
+                </MudItem>
+            </MudGrid>
 
-                        <MudTd DataLabel="Monthly Payment" Class="w-32">
-                            <MudNumericField T="decimal?"
-                                             @bind-Value="@context.MonthlyPayment"
-                                             Variant="Variant.Outlined"
-                                             Margin="Margin.Dense"
-                                             Min="0"
-                                             Step="25"
-                                             InputMode="InputMode.numeric"
-                                             HideSpinButtons="true"
-                                             Adornment="Adornment.Start"
-                                             AdornmentIcon="@Icons.Material.Filled.Payments"
-                                             Immediate="true"
-                                             Format="C0"
-                                             Culture="@CultureInfo.CurrentCulture">
-                                <HelperText>Payment per month</HelperText>
-                            </MudNumericField>
-                        </MudTd>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+                Total Savings (calculated): @TotalSavings.ToString("C0", CultureInfo.CurrentCulture)
+            </MudText>
 
-                        <!-- Interest Rate with converter (user enters 5.5 meaning 5.5%) -->
-                        <MudTd DataLabel="Interest Rate" Class="w-28">
-                            <MudNumericField T="decimal?"
-                                             @bind-Value="@context.InterestRate"
-                                             Variant="Variant.Outlined"
-                                             Margin="Margin.Dense"
-                                             Min="0"
-                                             Max="100"
-                                             Step="0.1m"
-                                             Placeholder="5.5"
-                                             InputMode="InputMode.numeric"
-                                             HideSpinButtons="true"
-                                             Immediate="true"
-                                             Converter="PercentAsNumberConverter"
-                                             Culture="@Culture">
-                                <AdornmentEndContent>
-                                    <MudText>%</MudText>
-                                </AdornmentEndContent>
-                                <HelperText>Enter percent (e.g., 5.5 for 5.5%).</HelperText>
-                            </MudNumericField>
-                        </MudTd>
+            <MudDivider Class="my-4" />
 
-                        <MudTd DataLabel="Is Debt" Class="text-center">
-                            <MudCheckBox T="bool"
-                                         @bind-Checked="@context.IsDebt"
-                                         Immediate="true"
-                                         For="@(() => context.IsDebt)"
-                                         AriaLabel="Mark as debt" />
-                        </MudTd>
+            <!-- ================= INVESTMENT RISK LEVEL (AT END) ================= -->
+            <MudText Typo="Typo.subtitle1">Investment Preferences</MudText>
 
-                        <MudTd DataLabel="Is Retirement" Class="text-center">
-                            <MudCheckBox T="bool"
-                                         @bind-Checked="@context.IsRetirement"
-                                         Disabled="@context.IsDebt"
-                                         Immediate="true"
-                                         For="@(() => context.IsRetirement)"
-                                         AriaLabel="Mark as retirement" />
-                        </MudTd>
+            <MudGrid Spacing="2" Class="mt-2">
+                <MudItem xs="12" md="6">
+                    <MudSelect T="RiskLevel"
+                               @bind-Value="vm.Model.RiskLevel"
+                               Label="Desired Investment Risk Level"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense">
+                        <MudSelectItem Value="RiskLevel.Low">Low</MudSelectItem>
+                        <MudSelectItem Value="RiskLevel.Med">Medium</MudSelectItem>
+                        <MudSelectItem Value="RiskLevel.High">High</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
 
-                        <MudTd>
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                           Color="Color.Error"
-                                           Disabled="vm.IsSubmitting"
-                                           OnClick="@(() => vm.RemoveItem(context))"
-                                           AriaLabel="Remove item" />
-                        </MudTd>
-                    </RowTemplate>
+        </MudForm>
 
-                    <FooterContent>
-                        <MudTd ColSpan="7">
-                            <MudButton Variant="Variant.Outlined"
-                                       Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Filled.Add"
-                                       Disabled="vm.IsSubmitting"
-                                       OnClick="vm.AddItem">
-                                Add Item
-                            </MudButton>
-                        </MudTd>
-                    </FooterContent>
-                </MudTable>
+        <!-- ================= MONTHLY OCCURRING PAYMENTS (OPTIONAL, OUTSIDE FORM) ================= -->
+        <MudDivider Class="my-4" />
 
-                <MudHidden Breakpoint="Breakpoint.SmAndUp">
-                    <div class="mt-2">
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.Add"
-                                   Disabled="vm.IsSubmitting"
-                                   OnClick="vm.AddItem"
-                                   FullWidth="true">
-                            Add Item
-                        </MudButton>
-                    </div>
-                </MudHidden>
-            </MudStack>
+        <MudText Typo="Typo.subtitle1">Monthly Occurring Payments (Optional)</MudText>
+        <MudAlert Severity="Severity.Info" Dense="true">
+            Add recurring debt payments (credit cards, auto loans, student loans, etc.). Optional.
+            If skipped, monthly debt is assumed to be $0.
+        </MudAlert>
 
-            @if (!string.IsNullOrWhiteSpace(vm.ServerError))
+        <MudStack Direction="Row" Spacing="2" Class="mt-2">
+            @if (!_isAddingMonthlyPayment)
             {
-                <MudAlert Severity="Severity.Error" Dense="true" Class="mt-2">
-                    @vm.ServerError
-                </MudAlert>
-            }
-
-            <MudStack Direction="Row" Spacing="2" Class="mt-4">
-                <MudButton Variant="Variant.Text"
-                           Color="Color.Default"
-                           OnClick="Reset"
-                           Disabled="vm.IsSubmitting">
-                    Reset
-                </MudButton>
-
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Primary"
-                           OnClick="Submit"
-                           Disabled="@(!(_form?.IsValid ?? false) || vm.IsSubmitting)"
-                           Loading="vm.IsSubmitting">
-                    Submit
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="StartAddMonthlyPayment">
+                    Add Monthly Payment
                 </MudButton>
-            </MudStack>
-        </MudForm>
+            }
+        </MudStack>
+
+        @if (_isAddingMonthlyPayment)
+        {
+            <MudPaper Class="p-4 mt-2" Elevation="0"
+                      Style="border: 1px solid var(--mud-palette-lines-default); border-radius: 12px;">
+                <MudGrid Spacing="2">
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_draftMonthlyPayment.Label"
+                                      Label="Payment / Debt Name"
+                                      Placeholder="Auto Loan, Credit Card"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudNumericField T="decimal?"
+                                         @bind-Value="_draftMonthlyPayment.Amount"
+                                         Label="Remaining Balance"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense"
+                                         Format="C0"
+                                         Culture="@CultureInfo.CurrentCulture" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudNumericField T="decimal?"
+                                         @bind-Value="_draftMonthlyPayment.MonthlyPayment"
+                                         Label="Monthly Payment"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense"
+                                         Format="C0"
+                                         Culture="@CultureInfo.CurrentCulture" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudNumericField T="decimal?"
+                                         @bind-Value="_draftMonthlyPayment.InterestRate"
+                                         Label="Interest Rate (%)"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense"
+                                         Converter="PercentAsNumberConverter" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudStack Direction="Row" Spacing="2">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       OnClick="ConfirmMonthlyPayment">
+                                Confirm
+                            </MudButton>
+
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Default"
+                                       OnClick="CancelMonthlyPayment">
+                                Cancel
+                            </MudButton>
+                        </MudStack>
+
+                        @if (!string.IsNullOrWhiteSpace(_monthlyPaymentInlineError))
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Error" Class="mt-2">
+                                @_monthlyPaymentInlineError
+                            </MudText>
+                        }
+                    </MudItem>
+
+                </MudGrid>
+            </MudPaper>
+        }
+
+        @if (MonthlyPaymentItems.Any())
+        {
+            <MudDivider Class="my-4" />
+            <MudText Typo="Typo.subtitle2">Added Monthly Payments</MudText>
+
+            <MudGrid Spacing="2">
+                @foreach (var item in MonthlyPaymentItems)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudCard Elevation="2">
+                            <MudCardContent>
+                                <MudText Typo="Typo.h6">@item.Label</MudText>
+
+                                <MudText Typo="Typo.body2">
+                                    Remaining Balance: @((item.Amount ?? 0m).ToString("C0", CultureInfo.CurrentCulture))
+                                </MudText>
+
+                                <MudText Typo="Typo.body2">
+                                    Monthly Payment: @((item.MonthlyPayment ?? 0m).ToString("C0", CultureInfo.CurrentCulture))
+                                </MudText>
+
+                                <MudText Typo="Typo.body2">
+                                    Interest: @(((item.InterestRate ?? 0m) * 100m).ToString("0.###", CultureInfo.CurrentCulture))%
+                                </MudText>
+                            </MudCardContent>
+
+                            <MudCardActions Class="justify-end">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Color="Color.Error"
+                                               OnClick="@(() => vm.RemoveItem(item))" />
+                            </MudCardActions>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+                Total Monthly Debt Payments (calculated): @TotalMonthlyDebtPayments.ToString("C0", CultureInfo.CurrentCulture)
+            </MudText>
+        }
+
+        <!-- ================= ACTIONS ================= -->
+        <MudStack Direction="Row" Spacing="2" Class="mt-4">
+            <MudButton Variant="Variant.Text" OnClick="Reset">
+                Reset
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Disabled="@(!(_form?.IsValid ?? false) || vm.IsSubmitting)"
+                       Loading="vm.IsSubmitting"
+                       OnClick="Submit">
+                Submit
+            </MudButton>
+        </MudStack>
+
     </MudStack>
 </MudPaper>
 
 @code {
     private MudForm? _form;
-
-    // Use the current culture for parsing/formatting numbers in the interest converter
     private readonly CultureInfo Culture = CultureInfo.CurrentCulture;
 
-    // ✅ Correct handler: receives 'bool valid'
+    // These labels are used to feed your scoring logic via vm.Model.Items.
+    // If your scoring expects different wording, change these three constants to match.
+    private const string SystemEmergencyLabel = "Emergency Fund";
+    private const string SystemLiquidLabel = "Liquid Assets";
+    private const string SystemRetirementLabel = "Retirement";
+
+    // Savings inputs (required)
+    private decimal? _emergencyFund;
+    private decimal? _retirementSavings;
+    private decimal? _liquidAssetsExEmergency;
+
+    private decimal TotalSavings =>
+        (_emergencyFund ?? 0m) + (_retirementSavings ?? 0m) + (_liquidAssetsExEmergency ?? 0m);
+
+    // Monthly payments (optional) - outside MudForm
+    private bool _isAddingMonthlyPayment = false;
+    private string? _monthlyPaymentInlineError;
+    private FinancialItem _draftMonthlyPayment = new() { IsDebt = true };
+
+    private IEnumerable<FinancialItem> MonthlyPaymentItems => vm.Model.Items.Where(i => i.IsDebt);
+
+    private decimal TotalMonthlyDebtPayments =>
+        MonthlyPaymentItems.Sum(i => i.MonthlyPayment ?? 0m);
+
     private void OnValidationChanged(bool valid) => vm.IsValid = valid;
 
-    // Converter: shows the model's decimal (0..1) as a percent number (0..100) to the user,
-    // and converts the user's percent input back to decimal for the model.
     private Converter<decimal?> PercentAsNumberConverter => new()
     {
-        // User types a number (e.g., "5.5") -> store as decimal fraction (0.055)
         GetFunc = input =>
-        {
-            if (string.IsNullOrWhiteSpace(input))
-                return (decimal?)null;
-
-            if (decimal.TryParse(input, NumberStyles.Number, Culture, out var percentValue))
-                return percentValue / 100m;
-
-            return (decimal?)null;
-        },
-
-        // Model has decimal fraction (e.g., 0.055) -> show "5.5" to the user
-        SetFunc = modelValue =>
-        {
-            if (modelValue is null)
-                return null;
-
-            var percent = modelValue.Value * 100m;
-            return percent.ToString("0.###", Culture);
-        }
+            decimal.TryParse(input, NumberStyles.Number, Culture, out var v) ? v / 100m : null,
+        SetFunc = value =>
+            value is null ? null : (value.Value * 100m).ToString("0.###", Culture)
     };
 
     protected override void OnInitialized()
+        => vm.StateChanged += StateHasChanged;
+
+    private void StartAddMonthlyPayment()
     {
-        vm.StateChanged += StateHasChanged;
+        _monthlyPaymentInlineError = null;
+        _isAddingMonthlyPayment = true;
+        _draftMonthlyPayment = new FinancialItem { IsDebt = true };
+    }
+
+    private void CancelMonthlyPayment()
+    {
+        _monthlyPaymentInlineError = null;
+        _isAddingMonthlyPayment = false;
+        _draftMonthlyPayment = new FinancialItem { IsDebt = true };
+    }
+
+    private bool DraftHasAnyValue()
+        => !string.IsNullOrWhiteSpace(_draftMonthlyPayment.Label)
+           || _draftMonthlyPayment.Amount is not null
+           || _draftMonthlyPayment.MonthlyPayment is not null
+           || _draftMonthlyPayment.InterestRate is not null;
+
+    private bool TryCommitDraftMonthlyPayment()
+    {
+        _monthlyPaymentInlineError = null;
+
+        if (!DraftHasAnyValue())
+            return true; // ignore blank draft
+
+        if (string.IsNullOrWhiteSpace(_draftMonthlyPayment.Label))
+        {
+            _monthlyPaymentInlineError = "Please enter a name for this payment (or Cancel to discard it).";
+            _isAddingMonthlyPayment = true;
+            return false;
+        }
+
+        _draftMonthlyPayment.IsDebt = true;
+        vm.Model.Items.Add(_draftMonthlyPayment);
+
+        _isAddingMonthlyPayment = false;
+        _draftMonthlyPayment = new FinancialItem { IsDebt = true };
+        return true;
+    }
+
+    private void ConfirmMonthlyPayment()
+    {
+        TryCommitDraftMonthlyPayment();
+    }
+
+    // Upsert helper: remove existing item with same label, then add updated value.
+    private void UpsertSystemSavingsItem(string label, decimal amount, bool isRetirement)
+    {
+        var existing = vm.Model.Items.FirstOrDefault(i =>
+            !i.IsDebt && string.Equals(i.Label, label, StringComparison.OrdinalIgnoreCase));
+
+        if (existing is not null)
+            vm.Model.Items.Remove(existing);
+
+        vm.Model.Items.Add(new FinancialItem
+        {
+            Label = label,
+            Amount = amount,
+            IsDebt = false,
+            IsRetirement = isRetirement
+        });
     }
 
     private async Task Submit()
     {
-        vm.ServerError = null;
-        vm.Submitted = false;
+        await _form!.Validate();
+        if (!_form.IsValid) return;
 
-        if (_form is null)
-            return;
-
-        await _form.Validate();
-        vm.IsValid = _form.IsValid;
-
-        if (!(_form.IsValid))
-            return;
-
-        try
+        // If draft payment panel is open, commit what they typed (or block with an inline error).
+        if (_isAddingMonthlyPayment)
         {
-            vm.IsSubmitting = true;
-
-            // This should populate vm.AdvisorResult internally (BuildResult)
-            await vm.SubmitAsync();
-
-            vm.Submitted = true;
-        }
-        catch (Exception ex)
-        {
-            var details = ex.InnerException is not null
-                ? $"{ex.Message} | Inner: {ex.InnerException.Message}"
-                : ex.Message;
-
-            vm.ServerError = $"Submission failed: {details}";
-            return; // don't continue to navigate
-        }
-        finally
-        {
-            // Turn off loading *before* navigating away to avoid post-nav state events
-            vm.IsSubmitting = false;
+            var ok = TryCommitDraftMonthlyPayment();
+            if (!ok) return;
         }
 
-        // IMPORTANT: detach BEFORE we navigate to avoid 'renderer disposed' crashes
-        vm.StateChanged -= StateHasChanged;
+        // Plug totals into model fields your existing backend likely uses.
+        vm.Model.Savings = TotalSavings;
+        vm.Model.Debt = TotalMonthlyDebtPayments; // 0 if none added
 
-        // If you removed the success banner on Home, you can drop '?submitted=1'
+        // CRITICAL: feed savings breakdown into Items for Emergency/Savings/Retirement scoring.
+        UpsertSystemSavingsItem(SystemEmergencyLabel, _emergencyFund ?? 0m, isRetirement: false);
+        UpsertSystemSavingsItem(SystemLiquidLabel, _liquidAssetsExEmergency ?? 0m, isRetirement: false);
+        UpsertSystemSavingsItem(SystemRetirementLabel, _retirementSavings ?? 0m, isRetirement: true);
+
+        vm.IsSubmitting = true;
+        await vm.SubmitAsync();
+        vm.IsSubmitting = false;
+
         Nav.NavigateTo("/home#analysis", replace: true);
     }
 
@@ -438,13 +430,17 @@
     {
         vm.Reset();
         _form?.ResetValidation();
-
-        // Reflect reset validation into button state
         vm.IsValid = false;
+
+        _emergencyFund = null;
+        _retirementSavings = null;
+        _liquidAssetsExEmergency = null;
+
+        _isAddingMonthlyPayment = false;
+        _monthlyPaymentInlineError = null;
+        _draftMonthlyPayment = new FinancialItem { IsDebt = true };
     }
 
     public void Dispose()
-    {
-        vm.StateChanged -= StateHasChanged;
-    }
+        => vm.StateChanged -= StateHasChanged;
 }
