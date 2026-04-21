@@ -21,7 +21,7 @@ namespace SmartVestFinancialAdvisor.Components.Models
         [Required, Range(0, double.MaxValue)]
         public decimal? MonthlyExpense { get; set; }
 
-        public RiskLevel RiskLevel { get; set; } = RiskLevel.Low;
+        public RiskLevel? RiskLevel { get; set; }
 
         [Required, Range(18, 120)]
         public int? Age { get; set; }
