@@ -25,9 +25,6 @@ namespace SmartVestFinancialAdvisor.Core.Scoring
             return new ScoreResult(subScores);
         }
 
-        /// <summary>
-        /// High-level wrapper that calculates the score and packages it for the UI/Categories.
-        /// </summary>
         public async Task<FinancialScore> AggregateScore(ClientProfile client)
         {
             var result = await Calculate(client);
@@ -39,14 +36,14 @@ namespace SmartVestFinancialAdvisor.Core.Scoring
             };
         }
 
+        // ================= BUILD SUBSCORES =================
+
         private async Task<List<SubScore>> BuildSubScores(ClientProfile client)
         {
             var items = client.Items ?? new List<FinancialItem>();
             var aggregated = _aggregationService.Aggregate(items);
 
-            // ---- Fallbacks when Items are missing or incomplete ----
-            // Many users provide totals (Savings/Debt) without item breakdown.
-            // These fallbacks prevent Emergency/Savings/Retirement scores from incorrectly being 0.
+            // ---- Safe fallbacks when item detail is incomplete ----
             var effectiveLiquidAssets =
                 aggregated.TotalLiquidAssets > 0m ? aggregated.TotalLiquidAssets :
                 (client.Savings > 0m ? client.Savings : 0m);
@@ -65,11 +62,10 @@ namespace SmartVestFinancialAdvisor.Core.Scoring
             var effectiveWeightedDebtRate =
                 effectiveTotalDebtBalance > 0m ? aggregated.WeightedDebtRate : 0m;
 
-            // Carry a derived "effective aggregated" set for downstream calcs (without changing the record type)
             var eff = new EffectiveAggregates(
                 TotalAssets: effectiveTotalAssets,
                 TotalLiquidAssets: effectiveLiquidAssets,
-                TotalRetirementSavings: aggregated.TotalRetirementSavings, // no safe fallback unless you add a field
+                TotalRetirementSavings: aggregated.TotalRetirementSavings,
                 TotalDebt: effectiveTotalDebtBalance,
                 WeightedDebtRate: effectiveWeightedDebtRate,
                 TotalMonthlyDebtPayments: effectiveMonthlyDebtPayments
@@ -79,15 +75,14 @@ namespace SmartVestFinancialAdvisor.Core.Scoring
             {
                 new SubScore("Income Stability", await CalculateIncomeScore(client), 0.40m),
                 new SubScore("Savings Health", CalculateSavingsScore(eff), 0.20m),
-                new SubScore("Debt Load", CalculateDebtScore(client, eff), 0.20m),
+                new SubScore("Debt Load", CalculateDebtLoadScore(client, eff), 0.20m),
                 new SubScore("Emergency Fund", CalculateEmergencyFundScore(client, eff), 0.10m),
                 new SubScore("Retirement Readiness", CalculateRetirementScore(client, eff), 0.10m)
             };
         }
 
-        /// <summary>
-        /// Evaluates income by ranking the user within their demographic percentile curve.
-        /// </summary>
+        // ================= INCOME =================
+
         private async Task<decimal> CalculateIncomeScore(ClientProfile client)
         {
             if (client.MonthlyIncome <= 0) return 0m;
@@ -107,45 +102,66 @@ namespace SmartVestFinancialAdvisor.Core.Scoring
             decimal annualIncome = client.MonthlyIncome * 12m;
 
             if (annualIncome >= benchmark.P95) return 100m;
-            if (annualIncome >= benchmark.P75) return 85m + ((annualIncome - benchmark.P75) / (benchmark.P95 - benchmark.P75) * 15m);
-            if (annualIncome >= benchmark.MedianIncome) return 60m + ((annualIncome - benchmark.MedianIncome) / (benchmark.P75 - benchmark.MedianIncome) * 25m);
-            if (annualIncome >= benchmark.P25) return 30m + ((annualIncome - benchmark.P25) / (benchmark.MedianIncome - benchmark.P25) * 30m);
+            if (annualIncome >= benchmark.P75)
+                return 85m + ((annualIncome - benchmark.P75) / (benchmark.P95 - benchmark.P75) * 15m);
+            if (annualIncome >= benchmark.MedianIncome)
+                return 60m + ((annualIncome - benchmark.MedianIncome) / (benchmark.P75 - benchmark.MedianIncome) * 25m);
+            if (annualIncome >= benchmark.P25)
+                return 30m + ((annualIncome - benchmark.P25) / (benchmark.MedianIncome - benchmark.P25) * 30m);
 
             return (annualIncome / benchmark.P25) * 30m;
         }
 
+        // ================= SAVINGS =================
+
         private decimal CalculateSavingsScore(EffectiveAggregates aggregated)
         {
-            var savings = aggregated.TotalAssets;
-            var debt = aggregated.TotalDebt;
+            if (aggregated.TotalDebt <= 0m)
+                return 100m;
 
-            // If no debt, savings health is maxed (solvency strong)
-            if (debt <= 0m) return 100m;
+            if (aggregated.TotalAssets <= 0m)
+                return 0m;
 
-            if (savings <= 0m) return 0m;
-
-            return Math.Min(100m, (savings / debt) * 100m);
+            return Math.Min(100m, (aggregated.TotalAssets / aggregated.TotalDebt) * 100m);
         }
 
-        private decimal CalculateDebtScore(ClientProfile client, EffectiveAggregates aggregated)
+        // ================= DEBT LOAD (FIXED) =================
+
+        private decimal CalculateDebtLoadScore(ClientProfile client, EffectiveAggregates aggregated)
         {
-            decimal totalOutflow = client.MonthlyExpense + aggregated.TotalMonthlyDebtPayments;
-            decimal debtRatio = totalOutflow / Math.Max(client.MonthlyIncome, 1m);
+            if (client.MonthlyIncome <= 0m)
+                return 0m;
 
-            // 0.60 is the threshold; higher ratio -> lower score
-            decimal cashFlowScore = Math.Max(0m, (1m - (debtRatio / 0.6m)) * 100m);
+            // ---- Expense pressure (cannot zero score alone) ----
+            decimal expenseRatio = client.MonthlyExpense / client.MonthlyIncome;
+            decimal baseExpenseScore = Math.Max(0m, (1m - expenseRatio) * 100m);
 
-            // APR penalty uses FRACTIONAL rates (0.07 = 7%)
-            // Threshold at 7% (0.07)
-            decimal interestPenalty = 1.0m;
-            if (aggregated.WeightedDebtRate > 0.07m)
+            decimal expensePenalty =
+                expenseRatio <= 0.60m
+                    ? 0m
+                    : Math.Min(0.40m, expenseRatio - 0.60m);
+
+            decimal score = baseExpenseScore * (1m - expensePenalty);
+
+            // ---- Debt payment pressure ----
+            if (aggregated.TotalMonthlyDebtPayments > 0m)
             {
-                decimal penalty = aggregated.WeightedDebtRate - 0.07m;
-                interestPenalty = Math.Max(0.2m, 1.0m - (penalty * 5.0m)); // 0.01 over -> 5% penalty
+                decimal debtPaymentRatio = aggregated.TotalMonthlyDebtPayments / client.MonthlyIncome;
+                decimal debtPenalty = Math.Min(0.60m, debtPaymentRatio * 2.5m);
+                score *= (1m - debtPenalty);
             }
 
-            return cashFlowScore * interestPenalty;
+            // ---- APR penalty (only if debt exists, >6%) ----
+            if (aggregated.TotalDebt > 0m && aggregated.WeightedDebtRate >= 0.06m)
+            {
+                decimal aprPenalty = Math.Min(0.30m, (aggregated.WeightedDebtRate - 0.06m) * 4.0m);
+                score *= (1m - aprPenalty);
+            }
+
+            return Math.Clamp(score, 0m, 100m);
         }
+
+        // ================= EMERGENCY FUND =================
 
         private decimal CalculateEmergencyFundScore(ClientProfile client, EffectiveAggregates aggregated)
         {
@@ -155,24 +171,21 @@ namespace SmartVestFinancialAdvisor.Core.Scoring
             return Math.Min(100m, (aggregated.TotalLiquidAssets / target) * 100m);
         }
 
+        // ================= RETIREMENT =================
+
         private decimal CalculateRetirementScore(ClientProfile client, EffectiveAggregates aggregated)
         {
-            // Fidelity-ish guideline proxy
             decimal ageMultiplier = client.Age < 30 ? 1m : (client.Age - 20) / 5m;
             decimal target = client.MonthlyIncome * 12m * ageMultiplier;
 
             return Math.Min(100m, (aggregated.TotalRetirementSavings / Math.Max(target, 1m)) * 100m);
         }
 
-        private void ValidateWeights(IEnumerable<SubScore> subScores)
-        {
-            var sum = subScores.Sum(s => s.Weight);
-            if (Math.Abs(sum - 1.0m) > 0.0001m)
-                throw new InvalidOperationException($"Score weights must total 1.0. Current sum: {sum}");
-        }
+        // ================= PEER AVATAR (RESTORED & FIXED) =================
 
         /// <summary>
-        /// Generates a "Peer Avatar" using our updated 4-percentile model.
+        /// Generates a realistic peer profile at a given income percentile.
+        /// Used for benchmarking and category comparisons.
         /// </summary>
         public ClientProfile CreatePeerAvatar(IncomeBenchmark benchmark, string tier)
         {
@@ -185,20 +198,55 @@ namespace SmartVestFinancialAdvisor.Core.Scoring
                 _ => benchmark.MedianIncome
             };
 
-            decimal monthly = annualIncome / 12m;
+            decimal monthlyIncome = annualIncome / 12m;
+
+            // Conservative but realistic assumptions
+            decimal monthlyExpense = monthlyIncome * 0.45m;
+            decimal emergencyFund = monthlyExpense * 3m;
+            decimal retirementSavings = annualIncome * 0.5m;
+
             return new ClientProfile
             {
-                MonthlyIncome = monthly,
+                MonthlyIncome = monthlyIncome,
+                MonthlyExpense = monthlyExpense,
                 Age = (benchmark.AgeRangeMin + benchmark.AgeRangeMax) / 2,
                 LocationState = benchmark.State,
                 Gender = benchmark.Gender,
-                MonthlyExpense = monthly * 0.45m,
+
                 Items = new List<FinancialItem>
                 {
-                    new FinancialItem { Label = "Checking", Amount = monthly * 2m, IsDebt = false },
-                    new FinancialItem { Label = "Debt", Amount = monthly * 1m, MonthlyPayment = monthly * 0.1m, InterestRate = 0.07m, IsDebt = true }
+                    new FinancialItem
+                    {
+                        Label = "Emergency Fund",
+                        Amount = emergencyFund,
+                        IsDebt = false
+                    },
+                    new FinancialItem
+                    {
+                        Label = "Retirement Savings",
+                        Amount = retirementSavings,
+                        IsDebt = false,
+                        IsRetirement = true
+                    },
+                    new FinancialItem
+                    {
+                        Label = "Typical Auto/Student Loan",
+                        Amount = monthlyIncome * 6m,
+                        MonthlyPayment = monthlyIncome * 0.08m,
+                        InterestRate = 0.05m, // NOT high-interest
+                        IsDebt = true
+                    }
                 }
             };
+        }
+
+        // ================= UTIL =================
+
+        private void ValidateWeights(IEnumerable<SubScore> subScores)
+        {
+            var sum = subScores.Sum(s => s.Weight);
+            if (Math.Abs(sum - 1.0m) > 0.0001m)
+                throw new InvalidOperationException($"Score weights must total 1.0. Current sum: {sum}");
         }
 
         private readonly record struct EffectiveAggregates(
