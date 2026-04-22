@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using SmartVestFinancialAdvisor.Components.Models;
+using SmartVestFinancialAdvisor.Components.Services; // <-- IMPORTANT: update if your interface lives elsewhere
 using SmartVestFinancialAdvisor.Core.Agents;
 using SmartVestFinancialAdvisor.Core.Benchmarks;
 using SmartVestFinancialAdvisor.Core.Financial;
@@ -16,15 +17,18 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
         private readonly ScoreCalculator _scoreCalculator;
         private readonly IBenchmarkProvider _benchmarkProvider;
         private readonly AdvisorEngine _advisorEngine;
+        private readonly IRecommendationCatalog _recommendationCatalog;
 
         public Builder(
             IBenchmarkProvider benchmarkProvider,
             ScoreCalculator scoreCalculator,
-            AdvisorEngine advisorEngine)
+            AdvisorEngine advisorEngine,
+            IRecommendationCatalog recommendationCatalog)
         {
             _benchmarkProvider = benchmarkProvider;
             _scoreCalculator = scoreCalculator;
             _advisorEngine = advisorEngine;
+            _recommendationCatalog = recommendationCatalog;
         }
 
         public async Task<BuildResult> Build(FinancialProfile profile)
@@ -58,7 +62,8 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
 
             var facts = ExtractFacts(client);
 
-            return new BuildResult
+            // Build the result first (so Recommendations logic can use FinancialScore/Constraints/Facts)
+            var result = new BuildResult
             {
                 Score = score.Total,
                 FinancialScore = score,
@@ -69,6 +74,11 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
                 Recommendations = new List<Recommendation>(),
                 ComputedAt = DateTime.UtcNow
             };
+
+            // ✅ Populate recommendations using your catalog (this is what fills Info/Score10/etc.)
+            result.Recommendations = _recommendationCatalog.For(result).ToList();
+
+            return result;
         }
 
         private ClientProfile MapToClientProfile(FinancialProfile profile)
@@ -119,17 +129,17 @@ namespace SmartVestFinancialAdvisor.Core.Constraints
             {
                 ["MonthlyIncome"] = client.MonthlyIncome,
                 ["MonthlyExpenses"] = monthlyExpenses,
-                ["MonthlyExpense"] = monthlyExpenses, 
+                ["MonthlyExpense"] = monthlyExpenses,
 
                 ["TotalAssets"] = totalAssets,
                 ["TotalLiquidAssets"] = totalLiquidAssets,
                 ["TotalRetirementSavings"] = totalRetirementSavings,
-                ["Cash"] = totalLiquidAssets, 
+                ["Cash"] = totalLiquidAssets,
 
                 ["TotalDebtBalance"] = totalDebtBalance,
                 ["TotalMonthlyDebtPayments"] = totalMonthlyDebtPayments,
-                ["WeightedDebtRate"] = weightedDebtRate,           
-                ["AverageDebtAPR"] = averageDebtAprPercent,         
+                ["WeightedDebtRate"] = weightedDebtRate,
+                ["AverageDebtAPR"] = averageDebtAprPercent,
 
                 ["EmergencyMonths"] = emergencyMonths,
 
