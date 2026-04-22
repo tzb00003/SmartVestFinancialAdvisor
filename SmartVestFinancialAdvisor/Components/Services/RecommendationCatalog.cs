@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using SmartVestFinancialAdvisor.Components.Models;
+﻿using SmartVestFinancialAdvisor.Components.Models;
 using SmartVestFinancialAdvisor.Core.Constraints;
 using SmartVestFinancialAdvisor.Core.Scoring;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace SmartVestFinancialAdvisor.Components.Services
 {
@@ -172,10 +172,10 @@ namespace SmartVestFinancialAdvisor.Components.Services
         }
 
         /// <summary>
-        /// Returns ONLY:
-        /// - Top 4 recommendations where Score10 > 5
-        /// - If none are > 5: ONLY HYSA
-        /// Also blocks investing when debt stress + negative cash flow.
+        /// Returns:
+        /// - Ordered recommendations, best-first
+        /// - Investing blocked when debt stress + negative cash flow
+        /// - If no strong (Score10 > 5): ONLY HYSA fallback
         /// </summary>
         public IReadOnlyList<Recommendation> For(BuildResult result)
         {
@@ -183,12 +183,9 @@ namespace SmartVestFinancialAdvisor.Components.Services
 
             var sig = AdvisorSignals.From(result);
 
-            // KEY FIX: Only recommend debt payoff when user actually has debt.
             bool needsDebtAction = sig.HasDebt && (sig.DebtLoadScore < 55m || sig.AverageDebtAprPercent >= 7.0m);
 
-            bool needsEmergency = sig.EmergencyScore < 80m || sig.EmergencyMonths < 3m;
-
-            // Block investing only when debt exists and stress is real
+            // Investing blocked only when debt exists and stress is real
             bool investingBlocked =
                 sig.HasDebt &&
                 (
@@ -217,34 +214,56 @@ namespace SmartVestFinancialAdvisor.Components.Services
                     if (!sig.HasDebt)
                     {
                         score = 0m;
-                        why.Add("No debt detected, so this action is not applicable.");
+                        why.Add("You currently have no debt, so this action is not applicable.");
                     }
                     else
                     {
-                        score = ScoreFromBands(
-                            strong: needsDebtAction,
-                            moderate: sig.DebtLoadScore < 70m,
-                            baseScore: 3m,
-                            strongScore: 10m,
-                            moderateScore: 7m);
+                        var apr = sig.AverageDebtAprPercent;
 
-                        if (sig.AverageDebtAprPercent >= 12m) score = 10m;
+                        if (apr >= 6.0m)
+                        {
+                            score = ScoreFromBands(
+                                strong: sig.DebtLoadScore < 55m || sig.NetCashFlow <= 0m,
+                                moderate: sig.DebtLoadScore < 70m,
+                                baseScore: 4m,
+                                strongScore: 9m,
+                                moderateScore: 7m
+                            );
+                            why.Add($"Your average debt interest rate is {apr:0.0}%, which is considered high.");
+                        }
+                        else if (apr >= 5.0m)
+                        {
+                            score = 4m;
+                            why.Add($"Your average debt interest rate is {apr:0.0}%.");
+                            why.Add("This isn’t urgent, but it’s worth monitoring and avoiding adding more debt.");
+                        }
+                        else
+                        {
+                            score = 2m;
+                            why.Add($"Your average debt interest rate is {apr:0.0}%.");
+                            why.Add("This is relatively low-interest debt and usually not a top payoff priority.");
+                        }
 
-                        why.Add($"Debt load score {sig.DebtLoadScore:0}/100.");
-                        why.Add($"Avg APR {sig.AverageDebtAprPercent:0.0}%.");
-                        if (sig.NetCashFlow <= 0m) why.Add("Cash flow is negative — paying down debt is the priority.");
+                        why.Add($"Your debt load score is {sig.DebtLoadScore:0}/100.");
+                        if (sig.NetCashFlow <= 0m)
+                            why.Add("Your monthly cash flow is tight, which limits flexibility.");
                     }
                 }
                 else if (IsType(rec, "Build/Top-Up Emergency Fund"))
                 {
-                    score = ScoreFromBands(
-                        strong: needsEmergency,
-                        moderate: sig.EmergencyMonths < 6m,
-                        baseScore: 4m,
-                        strongScore: 10m,
-                        moderateScore: 7m);
+                    // ✅ NEW: If EmergencyScore >= 80, do not recommend this action
+                    // Otherwise, increase roughly every 10 points below 80.
+                    score = ActionScoreByTenPointDeficit(sig.EmergencyScore, threshold: 80m);
 
-                    why.Add($"Emergency coverage {sig.EmergencyMonths:0.0} months (target 3–6).");
+                    if (score <= 0m)
+                    {
+                        why.Add($"Emergency fund score {sig.EmergencyScore:0}/100 — strong enough; focus can shift to higher-value goals.");
+                    }
+                    else
+                    {
+                        why.Add($"Emergency fund score {sig.EmergencyScore:0}/100 — improving this increases stability.");
+                        why.Add($"Emergency coverage {sig.EmergencyMonths:0.0} months (target 3–6).");
+                    }
                 }
                 else if (IsType(rec, "Max Employer 401(k) Match"))
                 {
@@ -255,19 +274,36 @@ namespace SmartVestFinancialAdvisor.Components.Services
                 }
                 else if (IsType(rec, "Increase Retirement Contributions"))
                 {
-                    score = LerpByDeficit(sig.RetirementScore, lowIsStronger: true);
-                    why.Add($"Retirement readiness score {sig.RetirementScore:0}/100.");
+                    // ✅ NEW: Similar logic to emergency fund:
+                    // If RetirementScore >= 80, do not recommend.
+                    score = ActionScoreByTenPointDeficit(sig.RetirementScore, threshold: 80m);
+
+                    if (score <= 0m)
+                    {
+                        why.Add($"Retirement readiness score {sig.RetirementScore:0}/100 — strong enough; you can prioritize growth-focused investing if appropriate.");
+                    }
+                    else
+                    {
+                        why.Add($"Retirement readiness score {sig.RetirementScore:0}/100 — increasing contributions improves long-term readiness.");
+                    }
                 }
 
                 // ============ CASH ============
                 else if (IsType(rec, HYSA))
                 {
-                    score = needsEmergency ? 9m : (sig.RiskTolerance <= 0.40m ? 8m : 5m);
-                    why.Add(needsEmergency ? "Strengthen emergency reserves." : "Maintain liquidity for near-term needs.");
+                    // If user is financially strong (emergency >=80), HYSA becomes less dominant unless risk is low.
+                    var emergencyStrong = sig.EmergencyScore >= 80m;
+                    score = emergencyStrong
+                        ? (sig.RiskTolerance <= 0.40m ? 7m : 4m)
+                        : (sig.EmergencyMonths < 3m ? 9m : (sig.RiskTolerance <= 0.40m ? 8m : 5m));
+
+                    why.Add(emergencyStrong
+                        ? "Liquidity is still useful, but your emergency position looks solid."
+                        : "Strengthen emergency reserves or maintain near-term liquidity.");
                 }
                 else if (Contains(rec, "Treasury Bills"))
                 {
-                    score = needsEmergency ? 8m : (sig.RiskTolerance <= 0.40m ? 8m : 6m);
+                    score = (sig.EmergencyMonths < 3m) ? 8m : (sig.RiskTolerance <= 0.40m ? 8m : 6m);
                     why.Add("Low-risk short-term option for cash.");
                 }
                 else if (Contains(rec, "Certificates of Deposit"))
@@ -323,7 +359,11 @@ namespace SmartVestFinancialAdvisor.Components.Services
                 }
                 else if (Contains(rec, "Small-Cap Value"))
                 {
-                    score = (sig.RiskTolerance >= 0.70m && !needsDebtAction && !needsEmergency) ? 7m : 3m;
+                    // allow “higher value” items to shine if action scores are already strong
+                    var emergencyStrong = sig.EmergencyScore >= 80m;
+                    var retirementStrong = sig.RetirementScore >= 80m;
+
+                    score = (sig.RiskTolerance >= 0.70m && !needsDebtAction && emergencyStrong && retirementStrong) ? 7m : 3m;
                     why.Add("Higher volatility factor tilt; best as a satellite.");
                 }
                 else if (Contains(rec, "REIT"))
@@ -355,8 +395,8 @@ namespace SmartVestFinancialAdvisor.Components.Services
                     score = 0m;
                 }
 
-                // If debt/emergency needs exist, de-prioritize high-volatility assets
-                if ((needsDebtAction || needsEmergency) && IsHighVolInvestment(rec))
+                // If debt needs exist, de-prioritize high-volatility assets
+                if (needsDebtAction && IsHighVolInvestment(rec))
                 {
                     score = Math.Max(0m, score - 2m);
                 }
@@ -385,26 +425,20 @@ namespace SmartVestFinancialAdvisor.Components.Services
                 return new List<Recommendation> { FallbackHysa(sig, investingBlocked: true) };
             }
 
-            // Order everything by recommendation strength (best first)
             var ordered = tailored
                 .OrderByDescending(r => r.Score10)
                 .ThenBy(r => r.Type, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            // Strong recommendations (used for initial screen)
             var strong = ordered.Where(r => r.Score10 > 5).ToList();
 
-            // If nothing is strong at all, return ONLY HYSA
             if (strong.Count == 0)
                 return new List<Recommendation> { FallbackHysa(sig, investingBlocked: false) };
 
-            // ✅ IMPORTANT:
-            // Return ALL ordered recommendations.
-            // UI controls how many are shown (Generate more).
             return ordered;
         }
 
-        // ---------------- Helpers (Part 2 continues...) ----------------
+        // ---------------- Helpers ----------------
         private static Recommendation FallbackHysa(AdvisorSignals sig, bool investingBlocked)
         {
             var reason = investingBlocked
@@ -458,15 +492,25 @@ namespace SmartVestFinancialAdvisor.Components.Services
             return Math.Clamp(match, 0.50m, 1.05m);
         }
 
-        private static int LerpByDeficit(decimal score100, bool lowIsStronger)
-        {
-            var t = Math.Clamp(score100 / 100m, 0m, 1m);
-            var v = lowIsStronger ? (10m - 9m * t) : (1m + 9m * t);
-            return (int)Math.Round(v, MidpointRounding.AwayFromZero);
-        }
-
         private static decimal ScoreFromBands(bool strong, bool moderate, decimal baseScore, decimal strongScore, decimal moderateScore)
             => strong ? strongScore : (moderate ? moderateScore : baseScore);
+
+        /// <summary>
+        /// Action scoring rule:
+        /// - If score100 >= threshold: return 0 (do not recommend)
+        /// - Else: start at 6 and increase ~1 point per 10 deficit below threshold, capped at 10.
+        /// Example threshold=80:
+        /// 79 => 6, 70 => 7, 60 => 8, 50 => 9, <=40 => 10
+        /// </summary>
+        private static decimal ActionScoreByTenPointDeficit(decimal score100, decimal threshold)
+        {
+            if (score100 >= threshold) return 0m;
+
+            var deficit = threshold - score100;               // 0..80
+            var steps = (int)Math.Floor(deficit / 10m);       // 0..8
+            var score10 = 6 + steps;                          // 6..14
+            return Math.Clamp(score10, 0, 10);
+        }
 
         // ---------- Signals extractor ----------
         private sealed record AdvisorSignals(
@@ -494,7 +538,8 @@ namespace SmartVestFinancialAdvisor.Components.Services
                     _ => "High"
                 };
 
-                var sub = r.Score?.SubScores;
+                // IMPORTANT: Subscores live on FinancialScore in your BuildResult model.
+                var sub = r.FinancialScore?.SubScores;
 
                 decimal debtLoadScore = GetSubScore(sub, "Debt Load") ?? 50m;
                 decimal emergencyScore = GetSubScore(sub, "Emergency Fund") ?? 50m;
@@ -502,7 +547,6 @@ namespace SmartVestFinancialAdvisor.Components.Services
 
                 var facts = r.Facts;
 
-                // Detect whether the user actually has debt
                 var totalDebtBalance = GetDecimal(facts, "TotalDebtBalance") ?? 0m;
                 var monthlyDebtPayments = GetDecimal(facts, "TotalMonthlyDebtPayments") ?? 0m;
                 bool hasDebt = totalDebtBalance > 0m || monthlyDebtPayments > 0m;
@@ -512,7 +556,6 @@ namespace SmartVestFinancialAdvisor.Components.Services
                     ?? ComputeEmergencyMonths(facts)
                     ?? 0m;
 
-                // APR may be fraction (0.07) or percent (7). If NO debt, APR = 0.
                 decimal aprRaw =
                     hasDebt
                         ? (GetDecimal(facts, "WeightedDebtRate")

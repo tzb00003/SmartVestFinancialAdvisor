@@ -8,12 +8,10 @@ namespace SmartVestFinancialAdvisor.Components.Services
 {
     public interface IFinancialSurveyService
     {
+        Task<BuildResult?> AnalyzeAsync(FinancialSurveyModel decryptedSurvey);
         Task<BuildResult> SaveAsync(FinancialSurveyModel model, CancellationToken ct);
     }
 
-    /// <summary>
-    /// Maps the UI model to the Core profile and runs the Advisor Engine.
-    /// </summary>
     public sealed class FinancialSurveyService : IFinancialSurveyService
     {
         private readonly Builder _builder;
@@ -23,9 +21,13 @@ namespace SmartVestFinancialAdvisor.Components.Services
             _builder = builder;
         }
 
+        public async Task<BuildResult?> AnalyzeAsync(FinancialSurveyModel decryptedSurvey)
+        {
+            return await SaveAsync(decryptedSurvey, CancellationToken.None);
+        }
+
         public async Task<BuildResult> SaveAsync(FinancialSurveyModel model, CancellationToken ct)
         {
-            // Map the UI RiskLevel to a decimal (0.0 to 1.0)
             decimal mappedRisk = model.RiskLevel switch
             {
                 RiskLevel.Low => 0.25m,
@@ -34,18 +36,16 @@ namespace SmartVestFinancialAdvisor.Components.Services
                 _ => 0.25m
             };
 
-            // Map UI items to Core items
             var mappedItems = model.Items.Select(i => new Core.Financial.FinancialItem
             {
                 Label = i.Label ?? "Unnamed Item",
                 Amount = i.Amount ?? 0m,
                 MonthlyPayment = i.MonthlyPayment ?? 0m,
-                InterestRate = i.InterestRate ?? 0m, // Ensure decimal fraction
+                InterestRate = i.InterestRate ?? 0m, 
                 IsDebt = i.IsDebt,
                 IsRetirement = i.IsRetirement
             }).ToList();
 
-            // Create the Core Profile
             var profile = new FinancialProfile
             {
                 MonthlyIncome = model.MonthlyIncome ?? 0m,
@@ -58,7 +58,6 @@ namespace SmartVestFinancialAdvisor.Components.Services
                 Items = mappedItems
             };
 
-            // Execute the Builder and return the result
             return await _builder.Build(profile);
         }
     }

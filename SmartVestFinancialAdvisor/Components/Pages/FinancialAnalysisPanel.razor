@@ -33,9 +33,9 @@ else
 
         <MudText Typo="Typo.h6">Score Details</MudText>
 
-        @if (Result.Score?.SubScores?.Any() == true)
+        @if (Result.FinancialScore?.SubScores?.Any() == true)
         {
-            <MudTable Items="Result.Score.SubScores" Dense="true" Hover="true" Elevation="0">
+            <MudTable Items="Result.FinancialScore.SubScores" Dense="true" Hover="true" Elevation="0">
                 <HeaderContent>
                     <MudTh>Area</MudTh>
                     <MudTh Style="text-align:right">Score</MudTh>
@@ -63,5 +63,5 @@ else
     [Parameter] public BuildResult? Result { get; set; }
 
     private int TotalScoreInt =>
-        (int)Math.Round(Convert.ToDouble(Result?.Score?.Total ?? 0m));
+        (int)Math.Round(Convert.ToDouble(Result?.FinancialScore?.Total ?? 0m));
 }
