@@ -126,19 +126,21 @@
             <!-- ================= INVESTMENT RISK LEVEL (AT END) ================= -->
             <MudText Typo="Typo.subtitle1">Investment Preferences</MudText>
 
-            <MudGrid Spacing="2" Class="mt-2">
-                <MudItem xs="12" md="6">
-                    <MudSelect T="RiskLevel"
-                               @bind-Value="vm.Model.RiskLevel"
-                               Label="Desired Investment Risk Level"
-                               Variant="Variant.Outlined"
-                               Margin="Margin.Dense">
-                        <MudSelectItem Value="RiskLevel.Low">Low</MudSelectItem>
-                        <MudSelectItem Value="RiskLevel.Med">Medium</MudSelectItem>
-                        <MudSelectItem Value="RiskLevel.High">High</MudSelectItem>
-                    </MudSelect>
-                </MudItem>
-            </MudGrid>
+            <MudSelect T="RiskLevel?"
+                       @bind-Value="vm.Model.RiskLevel"
+                       Placeholder="Select a Risk Level"
+                       Label="Desired Investment Risk Level"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Clearable="true">
+
+                <MudSelectItem T="RiskLevel?" Value="RiskLevel.Low">Low</MudSelectItem>
+                <MudSelectItem T="RiskLevel?" Value="RiskLevel.Med">Medium</MudSelectItem>
+                <MudSelectItem T="RiskLevel?" Value="RiskLevel.High">High</MudSelectItem>
+
+            </MudSelect>
+
+            
 
         </MudForm>
 
@@ -147,8 +149,10 @@
 
         <MudText Typo="Typo.subtitle1">Monthly Occurring Payments (Optional)</MudText>
         <MudAlert Severity="Severity.Info" Dense="true">
-            Add recurring debt payments (credit cards, auto loans, student loans, etc.). Optional.
-            If skipped, monthly debt is assumed to be $0.
+            Add recurring debt payments (credit cards, auto loans, student loans, etc.). Optional.            
+            If skipped, we assume no recurring debt payments.
+            This may underestimate your debt load score if you have loans.
+
         </MudAlert>
 
         <MudStack Direction="Row" Spacing="2" Class="mt-2">

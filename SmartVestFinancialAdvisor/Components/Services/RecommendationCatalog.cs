@@ -217,22 +217,47 @@ namespace SmartVestFinancialAdvisor.Components.Services
                     if (!sig.HasDebt)
                     {
                         score = 0m;
-                        why.Add("No debt detected, so this action is not applicable.");
+                        why.Add("You currently have no debt, so this action is not applicable.");
                     }
                     else
                     {
-                        score = ScoreFromBands(
-                            strong: needsDebtAction,
-                            moderate: sig.DebtLoadScore < 70m,
-                            baseScore: 3m,
-                            strongScore: 10m,
-                            moderateScore: 7m);
+                        var apr = sig.AverageDebtAprPercent;
 
-                        if (sig.AverageDebtAprPercent >= 12m) score = 10m;
+                        // --- APR-based priority tiers ---
+                        if (apr >= 6.0m)
+                        {
+                            // High-interest debt → can be a top recommendation
+                            score = ScoreFromBands(
+                                strong: sig.DebtLoadScore < 55m || sig.NetCashFlow <= 0m,
+                                moderate: sig.DebtLoadScore < 70m,
+                                baseScore: 4m,
+                                strongScore: 9m,
+                                moderateScore: 7m
+                            );
 
-                        why.Add($"Debt load score {sig.DebtLoadScore:0}/100.");
-                        why.Add($"Avg APR {sig.AverageDebtAprPercent:0.0}%.");
-                        if (sig.NetCashFlow <= 0m) why.Add("Cash flow is negative — paying down debt is the priority.");
+                            why.Add($"Your average debt interest rate is {apr:0.0}%, which is considered high.");
+                        }
+                        else if (apr >= 5.0m)
+                        {
+                            // Awareness tier → never top priority
+                            score = 4m;
+
+                            why.Add($"Your average debt interest rate is {apr:0.0}%.");
+                            why.Add("This isn’t urgent, but it’s worth monitoring and avoiding adding more debt.");
+                        }
+                        else
+                        {
+                            // Low-interest debt → not a priority
+                            score = 2m;
+
+                            why.Add($"Your average debt interest rate is {apr:0.0}%.");
+                            why.Add("This is relatively low-interest debt and usually not a top payoff priority.");
+                        }
+
+                        // Debt load context (separate from APR)
+                        why.Add($"Your debt load score is {sig.DebtLoadScore:0}/100.");
+                        if (sig.NetCashFlow <= 0m)
+                            why.Add("Your monthly cash flow is tight, which limits flexibility.");
                     }
                 }
                 else if (IsType(rec, "Build/Top-Up Emergency Fund"))
