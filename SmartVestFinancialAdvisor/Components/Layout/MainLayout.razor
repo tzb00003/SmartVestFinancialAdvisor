@@ -11,7 +11,11 @@
 
     <main>
         <div class="top-row px-4">
-            @if (!AuthService.IsLoggedIn)
+            @if (_isRestoring)
+            {
+                <span>Loading...</span>
+            }
+            else if (!AuthService.IsLoggedIn)
             {
                 <a @onclick="OpenTestDialog" style="cursor:pointer">Sign In</a>
             }
@@ -25,7 +29,16 @@
         </div>
 
         <article class="content px-4">
-            @Body
+            @if (_isRestoring)
+            {
+                <div style="text-align: center; padding: 40px;">
+                    <p>Loading your session...</p>
+                </div>
+            }
+            else
+            {
+                @Body
+            }
         </article>
     </main>
 
@@ -37,9 +50,19 @@
 </div>
 
 @code {
+    private bool _isRestoring = true;
+
     protected override async Task OnInitializedAsync()
     {
-        await AuthService.RestoreSessionAsync();
+        try
+        {
+            _isRestoring = true;
+            await AuthService.RestoreSessionAsync();
+        }
+        finally
+        {
+            _isRestoring = false;
+        }
     }
 
     private async Task OpenTestDialog()
@@ -59,4 +82,3 @@
         StateHasChanged();
     }
 }
-
