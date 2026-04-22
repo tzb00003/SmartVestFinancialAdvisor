@@ -186,7 +186,9 @@ namespace SmartVestFinancialAdvisor.Components.Services
             // KEY FIX: Only recommend debt payoff when user actually has debt.
             bool needsDebtAction = sig.HasDebt && (sig.DebtLoadScore < 55m || sig.AverageDebtAprPercent >= 7.0m);
 
-            bool needsEmergency = sig.EmergencyScore < 80m || sig.EmergencyMonths < 3m;
+            bool needsEmergency =
+                sig.EmergencyScore < 80m &&
+                sig.EmergencyMonths < 3m;
 
             // Block investing only when debt exists and stress is real
             bool investingBlocked =

@@ -142,39 +142,89 @@
                     </MudText>
 
                     <MudTable Items="@VisibleRecommendations"
-                    Dense
-                    Hover
-                    Bordered
-                    Elevation="0">
+          Dense
+          Hover
+          Bordered
+          Elevation="0"
+          Breakpoint="Breakpoint.Sm">
 
-                        <HeaderContent>
-                            <MudTh>Investment Type</MudTh>
-                            <MudTh>Risk Level</MudTh>
-                            <MudTh>Recommendation Level</MudTh>
-                            <MudTh>More Information</MudTh>
-                        </HeaderContent>
+    <!-- ===== HEADERS (DESKTOP) ===== -->
+    <HeaderContent>
+        <MudTh><b>Investment Type</b></MudTh>
+        <MudTh><b>Risk Level</b></MudTh>
+        <MudTh Align="Align.Right"><b>Recommendation</b></MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
 
-                        <RowTemplate Context="rec">
-                            <MudTd>@rec.Type</MudTd>
-                            <MudTd>@rec.Risk</MudTd>
-                            <MudTd Align="Align.Right">
-                                @rec.RecDisplay
-                            </MudTd>
-                            <MudTd>
-                                @if (!string.IsNullOrWhiteSpace(rec.Link))
-                                {
-                                    <MudLink Href="@rec.Link" Target="_blank">
-                                        Learn more
-                                    </MudLink>
-                                }
-                                else
-                                {
-                                    <MudText Color="Color.Secondary">—</MudText>
-                                }
-                            </MudTd>
-                        </RowTemplate>
+    <RowTemplate Context="rec">
 
-                    </MudTable>
+        <!-- ===== DESKTOP VIEW ===== -->
+        <MudHidden Breakpoint="Breakpoint.SmAndDown">
+            <MudTd>@rec.Type</MudTd>
+            <MudTd>@rec.Risk</MudTd>
+            <MudTd Align="Align.Right">@rec.RecDisplay</MudTd>
+            <MudTd>
+                <MudExpansionPanel Dense DisableRipple>
+                    <ChildContent>
+                        <MudText Typo="Typo.body2">
+                            @rec.Info
+                        </MudText>
+                    </ChildContent>
+                </MudExpansionPanel>
+            </MudTd>
+        </MudHidden>
+
+        <!-- ===== MOBILE VIEW ===== -->
+<MudHidden Breakpoint="Breakpoint.MdAndUp">
+    <MudTd ColSpan="4" Class="p-0">
+
+        <MudPaper Class="mobile-rec-card"
+                  Square="true"
+                  Elevation="1">
+
+            <MudStack Spacing="1" Class="pa-4" Style="height:100%">
+
+                <MudText Typo="Typo.subtitle1">
+                    <b>@rec.Type</b>
+                </MudText>
+
+                <MudText Typo="Typo.body2">
+                    <b>Risk:</b> @rec.Risk
+                </MudText>
+
+                <MudText Typo="Typo.body2">
+                    <b>Recommendation:</b> @rec.RecDisplay
+                </MudText>
+
+                <!-- Push expand section to bottom -->
+                <div style="margin-top:auto">
+                    <MudExpansionPanel Dense DisableRipple>
+                        <TitleContent>
+                            <MudText Typo="Typo.body2">
+                                <b>More information</b>
+                            </MudText>
+                        </TitleContent>
+                        <ChildContent>
+                            <MudText Typo="Typo.body2">
+                                @rec.Info
+                            </MudText>
+                        </ChildContent>
+                    </MudExpansionPanel>
+                </div>
+
+            </MudStack>
+
+        </MudPaper>
+
+    </MudTd>
+</MudHidden>
+
+
+    </RowTemplate>
+
+</MudTable>
+
+
 
                     @if (CanShowMore)
                     {
