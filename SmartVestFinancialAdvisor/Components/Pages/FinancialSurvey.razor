@@ -145,14 +145,14 @@ else
 
                 <MudGrid Spacing="2" Class="mt-2">
                     <MudItem xs="12" md="6">
-                        <MudSelect T="RiskLevel"
+                        <MudSelect T="RiskLevel?"
                                    @bind-Value="vm.Model.RiskLevel"
                                    Label="Desired Investment Risk Level"
                                    Variant="Variant.Outlined"
                                    Margin="Margin.Dense">
-                            <MudSelectItem Value="RiskLevel.Low">Low</MudSelectItem>
-                            <MudSelectItem Value="RiskLevel.Med">Medium</MudSelectItem>
-                            <MudSelectItem Value="RiskLevel.High">High</MudSelectItem>
+                            <MudSelectItem T="RiskLevel?" Value="RiskLevel.Low">Low</MudSelectItem>
+                            <MudSelectItem T="RiskLevel?"  Value="RiskLevel.Med">Medium</MudSelectItem>
+                            <MudSelectItem T="RiskLevel?"  Value="RiskLevel.High">High</MudSelectItem>
                         </MudSelect>
                     </MudItem>
                 </MudGrid>
