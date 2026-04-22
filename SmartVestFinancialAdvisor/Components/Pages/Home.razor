@@ -7,34 +7,72 @@
 @using SmartVestFinancialAdvisor.Components.Models
 @using SmartVestFinancialAdvisor.Components.Services
 @inject FinancialSurveyViewModel vm
+@inject IAuthenticationService AuthService
 @inject IRecommendationCatalog Catalog
 @inject NavigationManager Nav
+@inject IDialogService DialogService
 @implements IDisposable
 
 <PageTitle>Home</PageTitle>
 
 <MudGrid Spacing="3">
-    <!-- Header -->
     <MudItem xs="12">
         <MudPaper Class="pa-4">
-            <MudText Typo="Typo.h2" GutterBottom="true" Color="Color.Dark">
-                Welcome to SmartVest Financial Advisor
-            </MudText>
-            <MudText Typo="Typo.body1">
-                This application is designed to help you manage your finances effectively and make informed investment decisions.
-            </MudText>
+            <MudStack Direction="Row" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <div>
+                    <MudText Typo="Typo.h2" GutterBottom="true" Color="Color.Dark">
+                        Welcome to SmartVest Financial Advisor
+                    </MudText>
+                    @if (AuthService.IsLoggedIn)
+                    {
+                        <MudText Typo="Typo.body1" Color="Color.Secondary">
+                            Logged in as: <strong>@AuthService.CurrentEmail</strong>
+                        </MudText>
+                    }
+                    <MudText Typo="Typo.body1">
+                        This application is designed to help you manage your finances effectively and make informed investment decisions.
+                    </MudText>
+                </div>
+                
+                @if (AuthService.IsLoggedIn)
+                {
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Error"
+                               OnClick="LogoutAsync">
+                        Logout
+                    </MudButton>
+                }
+            </MudStack>
         </MudPaper>
     </MudItem>
 
-    <!-- Empty state (no score / no recommendations yet) -->
-    @if (vm?.AdvisorResult is null)
+    @if (!AuthService.IsLoggedIn)
+    {
+        <MudItem xs="12">
+            <MudPaper Class="pa-6 d-flex flex-column align-center justify-center"
+                      Style="text-align:center; border: 2px dashed var(--mud-palette-warning);">
+                <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" Color="Color.Warning" />
+                <MudText Typo="Typo.h5" Class="mt-2">Authentication Required</MudText>
+                <MudText Typo="Typo.body2" Class="mt-1">
+                    Please log in or create an account to access the survey and view your financial analysis.
+                </MudText>
+                <MudButton Class="mt-3"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="ShowLoginDialog">
+                    Sign In / Register
+                </MudButton>
+            </MudPaper>
+        </MudItem>
+    }
+    else if (Recommendations.Count == 0)
     {
         <MudItem xs="12">
             <MudPaper Class="pa-6 d-flex flex-column align-center justify-center" Style="text-align:center;">
                 <MudIcon Icon="@Icons.Material.Filled.Assessment" Size="Size.Large" Color="Color.Primary" />
-                <MudText Typo="Typo.h5" Class="mt-2">No score or results</MudText>
+                <MudText Typo="Typo.h5" Class="mt-2">No survey or results</MudText>
                 <MudText Typo="Typo.body2" Class="mt-1">
-                    Take the quick financial survey to generate your score and personalized recommendations.
+                    You haven't completed the financial survey yet. Take the quick survey to generate your score and personalized recommendations.
                 </MudText>
                 <MudButton Class="mt-3" Variant="Variant.Filled" Color="Color.Primary" Href="/financial-survey">
                     Start the survey
@@ -44,14 +82,12 @@
     }
     else
     {
-        <!-- Score card (left on desktop) -->
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-4">
                 <FinancialAnalysisPanel Result="vm.AdvisorResult" />
             </MudPaper>
         </MudItem>
 
-        <!-- Recommendations (right on desktop) -->
         @if (Recommendations.Any())
         {
             <MudItem xs="12" md="6">
@@ -96,30 +132,32 @@
                             </RowTemplate>
                         </MudTable>
 
-                        @* @if (CanShowMore)
-                        { *@
+                        @if (CanShowMore)
+                        {
                             <MudStack Direction="Row" Justify="Justify.FlexEnd">
                                 <MudButton Variant="Variant.Filled"
                                            Color="Color.Primary"
                                            OnClick="GenerateMore">
-                                    Generate more
+                                    Show more
                                 </MudButton>
                             </MudStack>
-                        @* } *@
+                        }
                     </MudStack>
                 </MudPaper>
             </MudItem>
         }
     }
 
-    <!-- Quick Actions -->
     <MudItem xs="12">
         <MudPaper Class="pa-4">
             <MudText Typo="Typo.h6">Quick Actions</MudText>
             <div class="d-flex mt-2" style="gap:12px;flex-wrap:wrap;">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/financial-survey">
-                    Take Financial Survey Today
-                </MudButton>
+                @if (AuthService.IsLoggedIn)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/financial-survey">
+                        Take / Retake Financial Survey
+                    </MudButton>
+                }
                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" Href="/financial-resources">
                     Financial Resources
                 </MudButton>
@@ -143,15 +181,44 @@
     private bool CanShowMore =>
         Recommendations.Count > _visibleCount;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         vm.StateChanged += VmOnStateChanged;
+        AuthService.OnStateChanged += AuthOnStateChanged;
+    
+        await vm.LoadUserResultAsync();
         RefreshRecommendations();
+    
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ShowLoginDialog()
+    {
+        var dialog = await DialogService.ShowAsync<LogInDialog>();
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            Nav.NavigateTo("/", forceLoad: true);
+        }
+    }
+
+    private async Task LogoutAsync()
+    {
+        await AuthService.LogoutAsync();
+        vm.Reset();
+        RefreshRecommendations();
+        Nav.NavigateTo("/");
     }
 
     private void VmOnStateChanged()
     {
         RefreshRecommendations();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void AuthOnStateChanged()
+    {
         InvokeAsync(StateHasChanged);
     }
 
@@ -161,7 +228,6 @@
             ? Catalog.For(res).ToList()
             : new List<Recommendation>();
 
-        // Reset paging each time recommendations refresh
         _visibleCount = PageSize;
     }
 
@@ -170,5 +236,10 @@
         _visibleCount = Math.Min(_visibleCount + PageSize, Recommendations.Count);
     }
 
-    public void Dispose() => vm.StateChanged -= VmOnStateChanged;
+    public void Dispose()
+    {
+        vm.StateChanged -= VmOnStateChanged;
+        AuthService.OnStateChanged -= AuthOnStateChanged;
+    }
 }
+

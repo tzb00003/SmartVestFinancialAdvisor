@@ -1,4 +1,6 @@
-﻿@inherits LayoutComponentBase
+﻿@using SmartVestFinancialAdvisor.Components.Services
+@inject IAuthenticationService AuthService
+@inherits LayoutComponentBase
 @using MudBlazor
 @inject IDialogService DialogService
 
@@ -9,8 +11,17 @@
 
     <main>
         <div class="top-row px-4">
-            <!-- 1. Use @onclick and prevent default anchor behavior -->
-            <a @onclick="OpenTestDialog" style="cursor:pointer" target="_blank">Sign In</a>
+            @if (!AuthService.IsLoggedIn)
+            {
+                <a @onclick="OpenTestDialog" style="cursor:pointer">Sign In</a>
+            }
+            else
+            {
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <span>@AuthService.CurrentEmail</span>
+                    <a @onclick="LogoutAsync" style="cursor:pointer; color: red;">Logout</a>
+                </div>
+            }
         </div>
 
         <article class="content px-4">
@@ -21,16 +32,31 @@
     <MudThemeProvider />
     <MudPopoverProvider />
 
-    <!-- 2. Ensure interactivity is enabled -->
     <MudDialogProvider @rendermode="InteractiveServer" />
     <MudSnackbarProvider />
 </div>
 
 @code {
-    // 3. The method must exist here
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.RestoreSessionAsync();
+    }
+
     private async Task OpenTestDialog()
     {
         var options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true, MaxWidth = MaxWidth.Small };
-        await DialogService.ShowAsync<LogInDialog>("Sign In", options);
+        var dialog = await DialogService.ShowAsync<LogInDialog>("Sign In", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+        }
+    }
+
+    private async Task LogoutAsync()
+    {
+        await AuthService.LogoutAsync();
+        StateHasChanged();
     }
 }
+
