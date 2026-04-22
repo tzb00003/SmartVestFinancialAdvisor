@@ -519,7 +519,7 @@ namespace SmartVestFinancialAdvisor.Components.Services
                     _ => "High"
                 };
 
-                var sub = r.Score?.SubScores;
+                var sub = r.FinancialScore?.SubScores;
 
                 decimal debtLoadScore = GetSubScore(sub, "Debt Load") ?? 50m;
                 decimal emergencyScore = GetSubScore(sub, "Emergency Fund") ?? 50m;
