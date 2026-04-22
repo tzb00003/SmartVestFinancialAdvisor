@@ -31,6 +31,7 @@ namespace SmartVestFinancialAdvisor.Components.Services
         private bool _isLoggedIn;
         private int? _currentUserId;
         private string _currentEmail = string.Empty;
+        private string _sessionKey = string.Empty;
 
         public bool IsLoggedIn
         {
@@ -95,11 +96,11 @@ namespace SmartVestFinancialAdvisor.Components.Services
                 _db.Users.Update(user);
                 await _db.SaveChangesAsync();
 
+                _sessionKey = SessionManager.CreateSession(user.Id, user.Email);
+
                 CurrentUserId = user.Id;
                 CurrentEmail = user.Email;
                 IsLoggedIn = true;
-
-                SessionManager.SetSession(user.Id, user.Email);
 
                 return new LoginResult
                 {
@@ -107,7 +108,8 @@ namespace SmartVestFinancialAdvisor.Components.Services
                     Message = "Logged in successfully.",
                     UserId = user.Id,
                     Email = user.Email,
-                    HasCompletedSurvey = user.HasCompletedSurvey
+                    HasCompletedSurvey = user.HasCompletedSurvey,
+                    SessionKey = _sessionKey  
                 };
             }
             catch (Exception ex)
@@ -146,18 +148,19 @@ namespace SmartVestFinancialAdvisor.Components.Services
                 _db.Users.Add(newUser);
                 await _db.SaveChangesAsync();
 
+                _sessionKey = SessionManager.CreateSession(newUser.Id, newUser.Email);
+
                 CurrentUserId = newUser.Id;
                 CurrentEmail = newUser.Email;
                 IsLoggedIn = true;
-
-                SessionManager.SetSession(newUser.Id, newUser.Email);
 
                 return new RegisterResult
                 {
                     Success = true,
                     Message = "Account created successfully.",
                     UserId = newUser.Id,
-                    Email = newUser.Email
+                    Email = newUser.Email,
+                    SessionKey = _sessionKey  
                 };
             }
             catch (Exception ex)
@@ -172,11 +175,12 @@ namespace SmartVestFinancialAdvisor.Components.Services
 
         public async Task LogoutAsync()
         {
+            SessionManager.ClearSession(_sessionKey);
+
             CurrentUserId = null;
             CurrentEmail = string.Empty;
             IsLoggedIn = false;
-
-            SessionManager.ClearSession();
+            _sessionKey = string.Empty;
 
             await Task.CompletedTask;
         }
@@ -185,24 +189,27 @@ namespace SmartVestFinancialAdvisor.Components.Services
         {
             try
             {
-                if (SessionManager.HasActiveSession())
+                if (!string.IsNullOrEmpty(_sessionKey) && SessionManager.HasActiveSession(_sessionKey))
                 {
-                    var userId = SessionManager.UserId;
-                    var email = SessionManager.Email;
+                    var userId = SessionManager.GetUserId(_sessionKey);
+                    var email = SessionManager.GetEmail(_sessionKey);
 
-                    var user = await _db.Users.FindAsync(userId);
-
-                    if (user is not null)
+                    if (userId.HasValue)
                     {
-                        CurrentUserId = user.Id;
-                        CurrentEmail = user.Email;
-                        IsLoggedIn = true;
+                        var user = await _db.Users.FindAsync(userId.Value);
 
-                        Console.WriteLine($"✅ Session restored: UserId={user.Id}, Email={user.Email}");
-                    }
-                    else
-                    {
-                        await LogoutAsync();
+                        if (user is not null)
+                        {
+                            CurrentUserId = user.Id;
+                            CurrentEmail = user.Email;
+                            IsLoggedIn = true;
+
+                            Console.WriteLine($"✅ Session restored: UserId={user.Id}, Email={user.Email}");
+                        }
+                        else
+                        {
+                            await LogoutAsync();
+                        }
                     }
                 }
                 else
@@ -218,6 +225,11 @@ namespace SmartVestFinancialAdvisor.Components.Services
                 IsLoggedIn = false;
             }
         }
+
+        public void SetSessionKey(string sessionKey)
+        {
+            _sessionKey = sessionKey;
+        }
     }
 
     public sealed class LoginResult
@@ -227,6 +239,7 @@ namespace SmartVestFinancialAdvisor.Components.Services
         public int? UserId { get; set; }
         public string Email { get; set; } = string.Empty;
         public bool HasCompletedSurvey { get; set; }
+        public string SessionKey { get; set; } = string.Empty;  // ✅ Add this
     }
 
     public sealed class RegisterResult
@@ -235,5 +248,6 @@ namespace SmartVestFinancialAdvisor.Components.Services
         public string Message { get; set; } = string.Empty;
         public int? UserId { get; set; }
         public string Email { get; set; } = string.Empty;
+        public string SessionKey { get; set; } = string.Empty;  // ✅ Add this
     }
 }
