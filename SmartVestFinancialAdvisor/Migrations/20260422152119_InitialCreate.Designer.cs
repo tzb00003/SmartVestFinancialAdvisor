@@ -12,7 +12,7 @@ using SmartVestFinancialAdvisor.Data;
 namespace SmartVestFinancialAdvisor.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260421204428_InitialCreate")]
+    [Migration("20260422152119_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

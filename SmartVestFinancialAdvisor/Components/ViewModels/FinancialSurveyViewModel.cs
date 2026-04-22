@@ -105,6 +105,8 @@ namespace SmartVestFinancialAdvisor.Components.ViewModels
             {
                 Console.Error.WriteLine($"❌ Failed to load user result: {ex.Message}");
             }
+
+            StateChanged?.Invoke();
         }
 
         public async Task SubmitAsync()
