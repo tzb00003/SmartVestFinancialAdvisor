@@ -32,8 +32,9 @@ namespace SmartVestFinancialAdvisor.Components.Services
         private int? _currentUserId;
         private string _currentEmail = string.Empty;
 
-        // Static storage to persist session across component lifecycle
-        private static string _staticSessionKey = string.Empty;
+        // ✅ CRITICAL: Store current session key statically per circuit
+        // This survives component reloads and page navigations
+        private static string _circuitSessionKey = string.Empty;
 
         public bool IsLoggedIn
         {
@@ -98,14 +99,14 @@ namespace SmartVestFinancialAdvisor.Components.Services
                 _db.Users.Update(user);
                 await _db.SaveChangesAsync();
 
-                // ✅ Create unique session for this user
-                _staticSessionKey = SessionManager.CreateSession(user.Id, user.Email);
+                // ✅ Create session and STORE it statically
+                _circuitSessionKey = SessionManager.CreateSession(user.Id, user.Email);
 
                 CurrentUserId = user.Id;
                 CurrentEmail = user.Email;
                 IsLoggedIn = true;
 
-                Console.WriteLine($"✅ Logged in: {email}, SessionKey: {_staticSessionKey}");
+                Console.WriteLine($"✅ LOGIN: {email} with key {_circuitSessionKey}");
 
                 return new LoginResult
                 {
@@ -114,11 +115,12 @@ namespace SmartVestFinancialAdvisor.Components.Services
                     UserId = user.Id,
                     Email = user.Email,
                     HasCompletedSurvey = user.HasCompletedSurvey,
-                    SessionKey = _staticSessionKey
+                    SessionKey = _circuitSessionKey
                 };
             }
             catch (Exception ex)
             {
+                Console.Error.WriteLine($"❌ LOGIN FAILED: {ex.Message}");
                 return new LoginResult
                 {
                     Success = false,
@@ -153,14 +155,14 @@ namespace SmartVestFinancialAdvisor.Components.Services
                 _db.Users.Add(newUser);
                 await _db.SaveChangesAsync();
 
-                // ✅ Create unique session for this new user
-                _staticSessionKey = SessionManager.CreateSession(newUser.Id, newUser.Email);
+                // ✅ Create session and STORE it statically
+                _circuitSessionKey = SessionManager.CreateSession(newUser.Id, newUser.Email);
 
                 CurrentUserId = newUser.Id;
                 CurrentEmail = newUser.Email;
                 IsLoggedIn = true;
 
-                Console.WriteLine($"✅ Registered: {email}, SessionKey: {_staticSessionKey}");
+                Console.WriteLine($"✅ REGISTER: {email} with key {_circuitSessionKey}");
 
                 return new RegisterResult
                 {
@@ -168,11 +170,12 @@ namespace SmartVestFinancialAdvisor.Components.Services
                     Message = "Account created successfully.",
                     UserId = newUser.Id,
                     Email = newUser.Email,
-                    SessionKey = _staticSessionKey
+                    SessionKey = _circuitSessionKey
                 };
             }
             catch (Exception ex)
             {
+                Console.Error.WriteLine($"❌ REGISTER FAILED: {ex.Message}");
                 return new RegisterResult
                 {
                     Success = false,
@@ -183,16 +186,17 @@ namespace SmartVestFinancialAdvisor.Components.Services
 
         public async Task LogoutAsync()
         {
-            if (!string.IsNullOrEmpty(_staticSessionKey))
+            Console.WriteLine($"🔴 LOGOUT: Clearing {_circuitSessionKey}");
+
+            if (!string.IsNullOrEmpty(_circuitSessionKey))
             {
-                SessionManager.ClearSession(_staticSessionKey);
-                Console.WriteLine($"✅ Logged out, cleared session: {_staticSessionKey}");
+                SessionManager.ClearSession(_circuitSessionKey);
+                _circuitSessionKey = string.Empty;
             }
 
             CurrentUserId = null;
             CurrentEmail = string.Empty;
             IsLoggedIn = false;
-            _staticSessionKey = string.Empty;
 
             await Task.CompletedTask;
         }
@@ -201,38 +205,43 @@ namespace SmartVestFinancialAdvisor.Components.Services
         {
             try
             {
-                // ✅ Check if we have a static session key from previous login
-                if (!string.IsNullOrEmpty(_staticSessionKey))
+                // ✅ ALWAYS read from the static circuit key first
+                if (string.IsNullOrEmpty(_circuitSessionKey))
                 {
-                    if (SessionManager.HasActiveSession(_staticSessionKey))
-                    {
-                        var userId = SessionManager.GetUserId(_staticSessionKey);
-                        var email = SessionManager.GetEmail(_staticSessionKey);
-
-                        if (userId.HasValue && !string.IsNullOrEmpty(email))
-                        {
-                            CurrentUserId = userId;
-                            CurrentEmail = email;
-                            IsLoggedIn = true;
-                            Console.WriteLine($"✅ Session restored from static key: {email}");
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        // Session key is invalid, clear it
-                        _staticSessionKey = string.Empty;
-                    }
+                    IsLoggedIn = false;
+                    Console.WriteLine("⚠️  No session key in circuit");
+                    return;
                 }
 
-                // No valid session
-                IsLoggedIn = false;
-                CurrentUserId = null;
-                CurrentEmail = string.Empty;
+                // ✅ Verify session still exists in SessionManager
+                if (!SessionManager.HasActiveSession(_circuitSessionKey))
+                {
+                    IsLoggedIn = false;
+                    _circuitSessionKey = string.Empty;
+                    Console.WriteLine("⚠️  Session key invalid");
+                    return;
+                }
+
+                // ✅ Restore from SessionManager
+                var userId = SessionManager.GetUserId(_circuitSessionKey);
+                var email = SessionManager.GetEmail(_circuitSessionKey);
+
+                if (userId.HasValue && !string.IsNullOrEmpty(email))
+                {
+                    CurrentUserId = userId;
+                    CurrentEmail = email;
+                    IsLoggedIn = true;
+                    Console.WriteLine($"✅ RESTORED: {email}");
+                }
+                else
+                {
+                    IsLoggedIn = false;
+                    Console.WriteLine("⚠️  Could not read session data");
+                }
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"❌ Failed to restore session: {ex.Message}");
+                Console.Error.WriteLine($"❌ RESTORE ERROR: {ex.Message}");
                 IsLoggedIn = false;
             }
         }
