@@ -192,11 +192,16 @@
         </MudItem>
         @if (CanShowMore)
         {
-            <MudButton Variant="Variant.Filled"
-                        Color="Color.Primary"
-                        OnClick="GenerateMore">
-                Show more
-            </MudButton>      
+            <MudGrid Class="mt-4">
+                <MudItem xs="12"  Class="d-flex justify-end">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               FullWidth="true"
+                               OnClick="GenerateMore">
+                        Show more
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
         }
     }
 
