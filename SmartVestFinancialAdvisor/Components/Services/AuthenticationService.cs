@@ -31,7 +31,9 @@ namespace SmartVestFinancialAdvisor.Components.Services
         private bool _isLoggedIn;
         private int? _currentUserId;
         private string _currentEmail = string.Empty;
-        private string _sessionKey = string.Empty;
+
+        // Static storage to persist session across component lifecycle
+        private static string _staticSessionKey = string.Empty;
 
         public bool IsLoggedIn
         {
@@ -96,11 +98,14 @@ namespace SmartVestFinancialAdvisor.Components.Services
                 _db.Users.Update(user);
                 await _db.SaveChangesAsync();
 
-                _sessionKey = SessionManager.CreateSession(user.Id, user.Email);
+                // ✅ Create unique session for this user
+                _staticSessionKey = SessionManager.CreateSession(user.Id, user.Email);
 
                 CurrentUserId = user.Id;
                 CurrentEmail = user.Email;
                 IsLoggedIn = true;
+
+                Console.WriteLine($"✅ Logged in: {email}, SessionKey: {_staticSessionKey}");
 
                 return new LoginResult
                 {
@@ -109,7 +114,7 @@ namespace SmartVestFinancialAdvisor.Components.Services
                     UserId = user.Id,
                     Email = user.Email,
                     HasCompletedSurvey = user.HasCompletedSurvey,
-                    SessionKey = _sessionKey  
+                    SessionKey = _staticSessionKey
                 };
             }
             catch (Exception ex)
@@ -148,11 +153,14 @@ namespace SmartVestFinancialAdvisor.Components.Services
                 _db.Users.Add(newUser);
                 await _db.SaveChangesAsync();
 
-                _sessionKey = SessionManager.CreateSession(newUser.Id, newUser.Email);
+                // ✅ Create unique session for this new user
+                _staticSessionKey = SessionManager.CreateSession(newUser.Id, newUser.Email);
 
                 CurrentUserId = newUser.Id;
                 CurrentEmail = newUser.Email;
                 IsLoggedIn = true;
+
+                Console.WriteLine($"✅ Registered: {email}, SessionKey: {_staticSessionKey}");
 
                 return new RegisterResult
                 {
@@ -160,7 +168,7 @@ namespace SmartVestFinancialAdvisor.Components.Services
                     Message = "Account created successfully.",
                     UserId = newUser.Id,
                     Email = newUser.Email,
-                    SessionKey = _sessionKey  
+                    SessionKey = _staticSessionKey
                 };
             }
             catch (Exception ex)
@@ -175,12 +183,16 @@ namespace SmartVestFinancialAdvisor.Components.Services
 
         public async Task LogoutAsync()
         {
-            SessionManager.ClearSession(_sessionKey);
+            if (!string.IsNullOrEmpty(_staticSessionKey))
+            {
+                SessionManager.ClearSession(_staticSessionKey);
+                Console.WriteLine($"✅ Logged out, cleared session: {_staticSessionKey}");
+            }
 
             CurrentUserId = null;
             CurrentEmail = string.Empty;
             IsLoggedIn = false;
-            _sessionKey = string.Empty;
+            _staticSessionKey = string.Empty;
 
             await Task.CompletedTask;
         }
@@ -189,46 +201,40 @@ namespace SmartVestFinancialAdvisor.Components.Services
         {
             try
             {
-                if (!string.IsNullOrEmpty(_sessionKey) && SessionManager.HasActiveSession(_sessionKey))
+                // ✅ Check if we have a static session key from previous login
+                if (!string.IsNullOrEmpty(_staticSessionKey))
                 {
-                    var userId = SessionManager.GetUserId(_sessionKey);
-                    var email = SessionManager.GetEmail(_sessionKey);
-
-                    if (userId.HasValue)
+                    if (SessionManager.HasActiveSession(_staticSessionKey))
                     {
-                        var user = await _db.Users.FindAsync(userId.Value);
+                        var userId = SessionManager.GetUserId(_staticSessionKey);
+                        var email = SessionManager.GetEmail(_staticSessionKey);
 
-                        if (user is not null)
+                        if (userId.HasValue && !string.IsNullOrEmpty(email))
                         {
-                            CurrentUserId = user.Id;
-                            CurrentEmail = user.Email;
+                            CurrentUserId = userId;
+                            CurrentEmail = email;
                             IsLoggedIn = true;
-
-                            Console.WriteLine($"✅ Session restored: UserId={user.Id}, Email={user.Email}");
-                        }
-                        else
-                        {
-                            await LogoutAsync();
+                            Console.WriteLine($"✅ Session restored from static key: {email}");
+                            return;
                         }
                     }
+                    else
+                    {
+                        // Session key is invalid, clear it
+                        _staticSessionKey = string.Empty;
+                    }
                 }
-                else
-                {
-                    IsLoggedIn = false;
-                    CurrentUserId = null;
-                    CurrentEmail = string.Empty;
-                }
+
+                // No valid session
+                IsLoggedIn = false;
+                CurrentUserId = null;
+                CurrentEmail = string.Empty;
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Failed to restore session: {ex.Message}");
+                Console.Error.WriteLine($"❌ Failed to restore session: {ex.Message}");
                 IsLoggedIn = false;
             }
-        }
-
-        public void SetSessionKey(string sessionKey)
-        {
-            _sessionKey = sessionKey;
         }
     }
 
@@ -239,7 +245,7 @@ namespace SmartVestFinancialAdvisor.Components.Services
         public int? UserId { get; set; }
         public string Email { get; set; } = string.Empty;
         public bool HasCompletedSurvey { get; set; }
-        public string SessionKey { get; set; } = string.Empty;  // ✅ Add this
+        public string SessionKey { get; set; } = string.Empty;
     }
 
     public sealed class RegisterResult
@@ -248,6 +254,6 @@ namespace SmartVestFinancialAdvisor.Components.Services
         public string Message { get; set; } = string.Empty;
         public int? UserId { get; set; }
         public string Email { get; set; } = string.Empty;
-        public string SessionKey { get; set; } = string.Empty;  // ✅ Add this
+        public string SessionKey { get; set; } = string.Empty;
     }
 }
