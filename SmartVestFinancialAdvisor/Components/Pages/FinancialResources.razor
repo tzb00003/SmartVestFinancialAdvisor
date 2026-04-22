@@ -75,6 +75,52 @@
                                     </MudListItem>
                                 </MudList>
                             </MudExpansionPanel>
+                            <MudExpansionPanel Text="Debt Load vs Interest Rate (important)">
+                                <MudText Typo="Typo.body2">
+                                    <b>Debt interest rate</b> and <b>debt load</b> are related but different:
+                                </MudText>
+
+                                <MudList  T="string" Dense="true">
+                                    <MudListItem>
+                                        <MudText Typo="Typo.body2">
+                                            <b>Interest rate</b> tells you how expensive the debt is (e.g., 4% vs 9%).
+                                        </MudText>
+                                    </MudListItem>
+                                    <MudListItem>
+                                        <MudText Typo="Typo.body2">
+                                            <b>Debt load</b> measures how much pressure your monthly payments place on your income.
+                                        </MudText>
+                                    </MudListItem>
+                                </MudList>
+
+                                <MudDivider Class="my-2" />
+
+                                <MudText Typo="Typo.body2">
+                                    Examples:
+                                </MudText>
+
+                                <MudList T="string" Dense="true">
+                                    <MudListItem>
+                                        <MudText Typo="Typo.body2">
+                                            ✅ Low-interest mortgage with manageable payments → usually fine to keep while investing.
+                                        </MudText>
+                                    </MudListItem>
+                                    <MudListItem>
+                                        <MudText Typo="Typo.body2">
+                                            ⚠️ Moderate-interest loan with high monthly payments → limits investing flexibility.
+                                        </MudText>
+                                    </MudListItem>
+                                    <MudListItem>
+                                        <MudText Typo="Typo.body2">
+                                            🚨 High-interest debt with tight cash flow → priority is reducing risk before investing.
+                                        </MudText>
+                                    </MudListItem>
+                                </MudList>
+
+                                <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                                    SmartVest prioritizes <b>debt payoff</b> only when interest is high or monthly debt pressure meaningfully restricts cash flow.
+                                </MudAlert>
+                            </MudExpansionPanel>
 
                             <MudExpansionPanel Text="How to interpret your score (simple)">
                                 <MudList T="string" Dense="true">
