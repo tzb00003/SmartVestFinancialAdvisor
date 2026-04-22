@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.JSInterop;
 using SmartVestFinancialAdvisor.Data;
 
 namespace SmartVestFinancialAdvisor.Components.Services
@@ -27,14 +28,15 @@ namespace SmartVestFinancialAdvisor.Components.Services
     public sealed class AuthenticationService : IAuthenticationService
     {
         private readonly AppDbContext _db;
+        private readonly IJSRuntime _js;
 
         private bool _isLoggedIn;
         private int? _currentUserId;
         private string _currentEmail = string.Empty;
+        private string _sessionKey = string.Empty;
 
-        // ✅ CRITICAL: Store current session key statically per circuit
-        // This survives component reloads and page navigations
-        private static string _circuitSessionKey = string.Empty;
+        private static readonly string _circuitId = Guid.NewGuid().ToString();
+        private string CircuitSessionKeyName => $"smartvest_session_{_circuitId}";
 
         public bool IsLoggedIn
         {
@@ -77,9 +79,10 @@ namespace SmartVestFinancialAdvisor.Components.Services
 
         public event Action? OnStateChanged;
 
-        public AuthenticationService(AppDbContext db)
+        public AuthenticationService(AppDbContext db, IJSRuntime js)
         {
             _db = db;
+            _js = js;
         }
 
         public async Task<LoginResult> LoginAsync(string email, string password)
@@ -99,14 +102,23 @@ namespace SmartVestFinancialAdvisor.Components.Services
                 _db.Users.Update(user);
                 await _db.SaveChangesAsync();
 
-                // ✅ Create session and STORE it statically
-                _circuitSessionKey = SessionManager.CreateSession(user.Id, user.Email);
+                _sessionKey = SessionManager.CreateSession(user.Id, user.Email);
+
+                try
+                {
+                    await _js.InvokeVoidAsync("localStorage.setItem", CircuitSessionKeyName, _sessionKey);
+                    Console.WriteLine($"✅ Stored in localStorage with key: {CircuitSessionKeyName}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"⚠️  localStorage error: {ex.Message}");
+                }
 
                 CurrentUserId = user.Id;
                 CurrentEmail = user.Email;
                 IsLoggedIn = true;
 
-                Console.WriteLine($"✅ LOGIN: {email} with key {_circuitSessionKey}");
+                Console.WriteLine($"✅ LOGIN: {email}, SessionKey: {_sessionKey}, CircuitId: {_circuitId}");
 
                 return new LoginResult
                 {
@@ -115,7 +127,7 @@ namespace SmartVestFinancialAdvisor.Components.Services
                     UserId = user.Id,
                     Email = user.Email,
                     HasCompletedSurvey = user.HasCompletedSurvey,
-                    SessionKey = _circuitSessionKey
+                    SessionKey = _sessionKey
                 };
             }
             catch (Exception ex)
@@ -155,14 +167,23 @@ namespace SmartVestFinancialAdvisor.Components.Services
                 _db.Users.Add(newUser);
                 await _db.SaveChangesAsync();
 
-                // ✅ Create session and STORE it statically
-                _circuitSessionKey = SessionManager.CreateSession(newUser.Id, newUser.Email);
+                _sessionKey = SessionManager.CreateSession(newUser.Id, newUser.Email);
+
+                try
+                {
+                    await _js.InvokeVoidAsync("localStorage.setItem", CircuitSessionKeyName, _sessionKey);
+                    Console.WriteLine($"✅ Stored in localStorage with key: {CircuitSessionKeyName}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"⚠️  localStorage error: {ex.Message}");
+                }
 
                 CurrentUserId = newUser.Id;
                 CurrentEmail = newUser.Email;
                 IsLoggedIn = true;
 
-                Console.WriteLine($"✅ REGISTER: {email} with key {_circuitSessionKey}");
+                Console.WriteLine($"✅ REGISTER: {email}, SessionKey: {_sessionKey}, CircuitId: {_circuitId}");
 
                 return new RegisterResult
                 {
@@ -170,7 +191,7 @@ namespace SmartVestFinancialAdvisor.Components.Services
                     Message = "Account created successfully.",
                     UserId = newUser.Id,
                     Email = newUser.Email,
-                    SessionKey = _circuitSessionKey
+                    SessionKey = _sessionKey
                 };
             }
             catch (Exception ex)
@@ -186,58 +207,93 @@ namespace SmartVestFinancialAdvisor.Components.Services
 
         public async Task LogoutAsync()
         {
-            Console.WriteLine($"🔴 LOGOUT: Clearing {_circuitSessionKey}");
+            Console.WriteLine($"🔴 LOGOUT: Clearing session {_sessionKey}");
 
-            if (!string.IsNullOrEmpty(_circuitSessionKey))
+            if (!string.IsNullOrEmpty(_sessionKey))
             {
-                SessionManager.ClearSession(_circuitSessionKey);
-                _circuitSessionKey = string.Empty;
+                SessionManager.ClearSession(_sessionKey);
+            }
+
+            try
+            {
+                await _js.InvokeVoidAsync("localStorage.removeItem", CircuitSessionKeyName);
+            }
+            catch
+            {
+                Console.WriteLine("⚠️  localStorage not available");
             }
 
             CurrentUserId = null;
             CurrentEmail = string.Empty;
             IsLoggedIn = false;
-
-            await Task.CompletedTask;
+            _sessionKey = string.Empty;
         }
 
         public async Task RestoreSessionAsync()
         {
             try
             {
-                // ✅ ALWAYS read from the static circuit key first
-                if (string.IsNullOrEmpty(_circuitSessionKey))
+                if (!string.IsNullOrEmpty(_sessionKey))
                 {
-                    IsLoggedIn = false;
-                    Console.WriteLine("⚠️  No session key in circuit");
-                    return;
+                    if (SessionManager.HasActiveSession(_sessionKey))
+                    {
+                        var userId = SessionManager.GetUserId(_sessionKey);
+                        var email = SessionManager.GetEmail(_sessionKey);
+
+                        if (userId.HasValue && !string.IsNullOrEmpty(email))
+                        {
+                            CurrentUserId = userId;
+                            CurrentEmail = email;
+                            IsLoggedIn = true;
+                            Console.WriteLine($"✅ RESTORED from memory: {email}");
+                            return;
+                        }
+                    }
+                    _sessionKey = string.Empty;
                 }
 
-                // ✅ Verify session still exists in SessionManager
-                if (!SessionManager.HasActiveSession(_circuitSessionKey))
+                string storedKey = null;
+                try
                 {
-                    IsLoggedIn = false;
-                    _circuitSessionKey = string.Empty;
-                    Console.WriteLine("⚠️  Session key invalid");
-                    return;
+                    storedKey = await _js.InvokeAsync<string>("localStorage.getItem", CircuitSessionKeyName);
+                    Console.WriteLine($"🔍 Retrieved from localStorage key '{CircuitSessionKeyName}': {storedKey}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"⚠️  localStorage error: {ex.Message}");
                 }
 
-                // ✅ Restore from SessionManager
-                var userId = SessionManager.GetUserId(_circuitSessionKey);
-                var email = SessionManager.GetEmail(_circuitSessionKey);
+                if (!string.IsNullOrEmpty(storedKey))
+                {
+                    if (SessionManager.HasActiveSession(storedKey))
+                    {
+                        var userId = SessionManager.GetUserId(storedKey);
+                        var email = SessionManager.GetEmail(storedKey);
 
-                if (userId.HasValue && !string.IsNullOrEmpty(email))
-                {
-                    CurrentUserId = userId;
-                    CurrentEmail = email;
-                    IsLoggedIn = true;
-                    Console.WriteLine($"✅ RESTORED: {email}");
+                        if (userId.HasValue && !string.IsNullOrEmpty(email))
+                        {
+                            _sessionKey = storedKey;
+                            CurrentUserId = userId;
+                            CurrentEmail = email;
+                            IsLoggedIn = true;
+                            Console.WriteLine($"✅ RESTORED from localStorage: {email}");
+                            return;
+                        }
+                    }
+
+                    try
+                    {
+                        await _js.InvokeVoidAsync("localStorage.removeItem", CircuitSessionKeyName);
+                    }
+                    catch { }
+
+                    Console.WriteLine($"⚠️  Stored session key is invalid");
                 }
-                else
-                {
-                    IsLoggedIn = false;
-                    Console.WriteLine("⚠️  Could not read session data");
-                }
+
+                IsLoggedIn = false;
+                CurrentUserId = null;
+                CurrentEmail = string.Empty;
+                Console.WriteLine("⚠️  No valid session found");
             }
             catch (Exception ex)
             {
