@@ -126,121 +126,65 @@
     }
     else
     {
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-4">
-                <FinancialAnalysisPanel Result="vm.AdvisorResult" />
-            </MudPaper>
-        </MudItem>
+        <MudText Typo="Typo.h6">
+            Financial Portfolio
+        </MudText>
 
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-4"
-            Style="background-color: #f2f2f2;">
-                <MudStack Spacing="2">
+        <MudGrid Spacing="3">
+            @foreach (var rec in VisibleRecommendations)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Class="pa-4 d-flex flex-column"
+                              Elevation="1"
+                              Style="height:100%; background-color:#fff;">
 
-                    <MudText Typo="Typo.h6">
-                        Financial Portfolio
-                    </MudText>
+                        <MudStack Spacing="1" Style="flex-grow:1">
 
-                    <MudTable Items="@VisibleRecommendations"
-          Dense
-          Hover
-          Bordered
-          Elevation="0"
-          Breakpoint="Breakpoint.Sm">
-
-    <!-- ===== HEADERS (DESKTOP) ===== -->
-    <HeaderContent>
-        <MudTh><b>Investment Type</b></MudTh>
-        <MudTh><b>Risk Level</b></MudTh>
-        <MudTh Align="Align.Right"><b>Recommendation</b></MudTh>
-        <MudTh></MudTh>
-    </HeaderContent>
-
-    <RowTemplate Context="rec">
-
-        <!-- ===== DESKTOP VIEW ===== -->
-        <MudHidden Breakpoint="Breakpoint.SmAndDown">
-            <MudTd>@rec.Type</MudTd>
-            <MudTd>@rec.Risk</MudTd>
-            <MudTd Align="Align.Right">@rec.RecDisplay</MudTd>
-            <MudTd>
-                <MudExpansionPanel Dense DisableRipple>
-                    <ChildContent>
-                        <MudText Typo="Typo.body2">
-                            @rec.Info
-                        </MudText>
-                    </ChildContent>
-                </MudExpansionPanel>
-            </MudTd>
-        </MudHidden>
-
-        <!-- ===== MOBILE VIEW ===== -->
-<MudHidden Breakpoint="Breakpoint.MdAndUp">
-    <MudTd ColSpan="4" Class="p-0">
-
-        <MudPaper Class="mobile-rec-card"
-                  Square="true"
-                  Elevation="1">
-
-            <MudStack Spacing="1" Class="pa-4" Style="height:100%">
-
-                <MudText Typo="Typo.subtitle1">
-                    <b>@rec.Type</b>
-                </MudText>
-
-                <MudText Typo="Typo.body2">
-                    <b>Risk:</b> @rec.Risk
-                </MudText>
-
-                <MudText Typo="Typo.body2">
-                    <b>Recommendation:</b> @rec.RecDisplay
-                </MudText>
-
-                <!-- Push expand section to bottom -->
-                <div style="margin-top:auto">
-                    <MudExpansionPanel Dense DisableRipple>
-                        <TitleContent>
-                            <MudText Typo="Typo.body2">
-                                <b>More information</b>
+                            <MudText Typo="Typo.subtitle1">
+                                <b>@rec.Type</b>
                             </MudText>
-                        </TitleContent>
-                        <ChildContent>
+
                             <MudText Typo="Typo.body2">
-                                @rec.Info
+                                <b>Risk:</b> @rec.Risk
                             </MudText>
-                        </ChildContent>
-                    </MudExpansionPanel>
-                </div>
 
-            </MudStack>
+                            <MudText Typo="Typo.body2">
+                                <b>Recommendation:</b> @rec.RecDisplay
+                            </MudText>
 
-        </MudPaper>
+                            <!-- Push expandable content to bottom -->
+                            <div style="margin-top:auto">
+                                <MudExpansionPanel Dense DisableRipple>
+                                    <TitleContent>
+                                        <MudText Typo="Typo.body2">
+                                            <b>More information</b>
+                                        </MudText>
+                                    </TitleContent>
+                                    <ChildContent>
+                                        <MudText Typo="Typo.body2">
+                                            @rec.Info
+                                        </MudText>
+                                    </ChildContent>
+                                </MudExpansionPanel>
+                            </div>
 
-    </MudTd>
-</MudHidden>
-
-
-    </RowTemplate>
-
-</MudTable>
-
-
-
-                    @if (CanShowMore)
-                    {
-                        <MudStack Direction="Row"
-                        Justify="Justify.FlexEnd">
-                            <MudButton Variant="Variant.Filled"
-                            Color="Color.Primary"
-                            OnClick="GenerateMore">
-                                Show more
-                            </MudButton>
                         </MudStack>
-                    }
 
-                </MudStack>
-            </MudPaper>
-        </MudItem>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+
+        @if (CanShowMore)
+        {
+            <MudStack Direction="Row" Justify="Justify.FlexEnd" Class="mt-4">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="GenerateMore">
+                    Show more
+                </MudButton>
+            </MudStack>
+        }
     }
 
     <!-- Quick Actions -->
