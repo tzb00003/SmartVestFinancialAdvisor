@@ -1,8 +1,8 @@
 ﻿@using SmartVestFinancialAdvisor.Data
 @using Microsoft.EntityFrameworkCore
-@inject AppDbContext Db
 @using System.ComponentModel.DataAnnotations
 @using MudBlazor
+@using SmartVestFinancialAdvisor.Components.Services
 
 <MudDialog MaxWidth="MaxWidth.ExtraSmall"
            FullWidth="true"
@@ -93,6 +93,9 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
 
+    [Inject] private IAuthenticationService AuthService { get; set; } = default!;
+    [Inject] private AppDbContext Db { get; set; } = default!;
+
     private MudForm? _form;
     private bool _isValid;
     private bool _showPassword;
@@ -124,11 +127,10 @@
         {
             _isSubmitting = true;
 
-            // Check if user already exists
             var existingUser = await Db.Users
                 .FirstOrDefaultAsync(u => u.Email == _model.Email);
 
-            if (_model.RememberMe) // "New User" checkbox is checked = Register
+            if (_model.RememberMe) 
             {
                 if (existingUser != null)
                 {
@@ -136,21 +138,27 @@
                     return;
                 }
 
-                // Save new user to DB
-                var newUser = new User
+                var registerResult = await AuthService.RegisterAsync(_model.Email, _model.Password);
+                
+                if (!registerResult.Success)
                 {
-                    Email = _model.Email,
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(_model.Password),
-                    CreatedAt = DateTime.UtcNow
-                };
-                Db.Users.Add(newUser);
-                await Db.SaveChangesAsync();
+                    _error = registerResult.Message;
+                    return;
+                }
             }
-            else // Existing user = Login
+            else 
             {
                 if (existingUser == null || !BCrypt.Net.BCrypt.Verify(_model.Password, existingUser.PasswordHash))
                 {
                     _error = "Invalid email or password.";
+                    return;
+                }
+
+                var loginResult = await AuthService.LoginAsync(_model.Email, _model.Password);
+                
+                if (!loginResult.Success)
+                {
+                    _error = loginResult.Message;
                     return;
                 }
             }
@@ -165,7 +173,7 @@
         catch (Exception ex)
         {
             _error = "An unexpected error occurred. Please try again.";
-            Console.Error.WriteLine(ex);
+            Console.Error.WriteLine($"Login error: {ex.Message}");
         }
         finally
         {
@@ -195,3 +203,4 @@
         public bool Success { get; set; }
     }
 }
+

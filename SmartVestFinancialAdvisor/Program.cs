@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components.Server; // <-- add this for CircuitOptions
+using Microsoft.AspNetCore.Components.Server;
 using MudBlazor.Services;
 using SmartVestFinancialAdvisor.Components;
 using SmartVestFinancialAdvisor.Core.Benchmarks;
@@ -14,34 +14,34 @@ using System;
 using System.IO;
 using SmartVestFinancialAdvisor.Components.ViewModels;
 using SmartVestFinancialAdvisor.Components.Services;
-//vasco database
 using Microsoft.EntityFrameworkCore;
-//vasco database
 using SmartVestFinancialAdvisor.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//vasco database
+// ✅ Database configuration
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add services to the container.
+// ✅ Razor components and interactivity
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// 🔎 Fastest way to see detailed circuit errors in Dev
 builder.Services.Configure<CircuitOptions>(o =>
 {
     o.DetailedErrors = builder.Environment.IsDevelopment();
 });
 
-// ViewModel (scoped per circuit) — removed duplicate registration
+builder.Services.AddScoped<IEncryptionService, EncryptionService>();
+
+builder.Services.AddScoped<ISurveyDataService, SurveyDataService>();
+
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+
 builder.Services.AddScoped<FinancialSurveyViewModel>();
 
-// Catalog
 builder.Services.AddSingleton<IRecommendationCatalog, RecommendationCatalog>();
 
-// Core Logic Services
 builder.Services.AddScoped<FinancialAggregationService>();
 builder.Services.AddScoped<ScoreCalculator>();
 builder.Services.AddScoped<AdvisorEngine>(sp =>
@@ -54,16 +54,12 @@ builder.Services.AddScoped<AdvisorEngine>(sp =>
 });
 builder.Services.AddScoped<Builder>();
 
-// Survey Service (Maps UI -> Core)
 builder.Services.AddScoped<IFinancialSurveyService, FinancialSurveyService>();
 
-// MudBlazor
 builder.Services.AddMudServices(options =>
 {
-    // options.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.TopCenter;
 });
 
-// Benchmarks / background census
 string dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "benchmarks.db");
 builder.Services.AddSingleton<SqliteBenchmarkProvider>(_ => new SqliteBenchmarkProvider(dbPath));
 builder.Services.AddSingleton<IBenchmarkProvider>(sp => sp.GetRequiredService<SqliteBenchmarkProvider>());
@@ -71,7 +67,6 @@ builder.Services.AddHostedService<CensusBackgroundService>();
 
 var app = builder.Build();
 
-// Pipeline
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);

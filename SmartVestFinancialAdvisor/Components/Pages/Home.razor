@@ -1,42 +1,124 @@
 ﻿@page "/home"
 @page "/"
+
 @using MudBlazor
 @using System.Linq
 @using SmartVestFinancialAdvisor.Components
 @using SmartVestFinancialAdvisor.Components.ViewModels
 @using SmartVestFinancialAdvisor.Components.Models
 @using SmartVestFinancialAdvisor.Components.Services
+
 @inject FinancialSurveyViewModel vm
+@inject IAuthenticationService AuthService
 @inject IRecommendationCatalog Catalog
 @inject NavigationManager Nav
+@inject IDialogService DialogService
+
 @implements IDisposable
 
 <PageTitle>Home</PageTitle>
 
 <MudGrid Spacing="3">
+
     <!-- Header -->
     <MudItem xs="12">
         <MudPaper Class="pa-4">
-            <MudText Typo="Typo.h2" GutterBottom="true" Color="Color.Dark">
-                Welcome to SmartVest Financial Advisor
-            </MudText>
-            <MudText Typo="Typo.body1">
-                This application is designed to help you manage your finances effectively and make informed investment decisions.
-            </MudText>
+            <MudStack Direction="Row"
+                      AlignItems="AlignItems.Center"
+                      Justify="Justify.SpaceBetween">
+
+                <div>
+                    <MudText Typo="Typo.h2"
+                             GutterBottom
+                             Color="Color.Dark">
+                        Welcome to SmartVest Financial Advisor
+                    </MudText>
+
+                    @if (AuthService.IsLoggedIn)
+                    {
+                        <MudText Typo="Typo.body1"
+                                 Color="Color.Secondary">
+                            Logged in as: <strong>@AuthService.CurrentEmail</strong>
+                        </MudText>
+                    }
+
+                    <MudText Typo="Typo.body1">
+                        This application is designed to help you manage your finances effectively
+                        and make informed investment decisions.
+                    </MudText>
+                </div>
+
+                @if (AuthService.IsLoggedIn)
+                {
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Error"
+                               OnClick="LogoutAsync">
+                        Logout
+                    </MudButton>
+                }
+            </MudStack>
         </MudPaper>
     </MudItem>
 
-    <!-- Empty state (no score / no recommendations yet) -->
-    @if (vm?.AdvisorResult is null)
+    @if (!AuthService.IsLoggedIn)
     {
         <MudItem xs="12">
-            <MudPaper Class="pa-6 d-flex flex-column align-center justify-center" Style="text-align:center;">
-                <MudIcon Icon="@Icons.Material.Filled.Assessment" Size="Size.Large" Color="Color.Primary" />
-                <MudText Typo="Typo.h5" Class="mt-2">No score or results</MudText>
-                <MudText Typo="Typo.body2" Class="mt-1">
-                    Take the quick financial survey to generate your score and personalized recommendations.
+            <MudPaper Class="pa-6 d-flex flex-column align-center justify-center"
+            Style="text-align:center; border: 2px dashed var(--mud-palette-warning);">
+
+                <MudIcon Icon="@Icons.Material.Filled.Lock"
+                Size="Size.Large"
+                Color="Color.Warning" />
+
+                <MudText Typo="Typo.h5" Class="mt-2">
+                    Authentication Required
                 </MudText>
-                <MudButton Class="mt-3" Variant="Variant.Filled" Color="Color.Primary" Href="/financial-survey">
+
+                <MudText Typo="Typo.body2" Class="mt-1">
+                    Please log in or create an account to access the survey and view your financial analysis.
+                </MudText>
+
+                <MudButton Class="mt-3"
+                Variant="Variant.Filled"
+                Color="Color.Primary"
+                OnClick="ShowLoginDialog">
+                    Sign In / Register
+                </MudButton>
+            </MudPaper>
+        </MudItem>
+    }
+    else if (_isLoading)
+    {
+        <MudItem xs="12">
+            <MudPaper Class="pa-6 d-flex justify-center">
+                <MudProgressCircular Indeterminate
+                Color="Color.Primary"
+                Size="Size.Large" />
+            </MudPaper>
+        </MudItem>
+    }
+    else if (Recommendations.Count == 0)
+    {
+        <MudItem xs="12">
+            <MudPaper Class="pa-6 d-flex flex-column align-center justify-center"
+            Style="text-align:center;">
+
+                <MudIcon Icon="@Icons.Material.Filled.Assessment"
+                Size="Size.Large"
+                Color="Color.Primary" />
+
+                <MudText Typo="Typo.h5" Class="mt-2">
+                    No survey or results
+                </MudText>
+
+                <MudText Typo="Typo.body2" Class="mt-1">
+                    You haven't completed the financial survey yet.
+                </MudText>
+
+                <MudButton Class="mt-3"
+                Variant="Variant.Filled"
+                Color="Color.Primary"
+                Href="/financial-survey">
                     Start the survey
                 </MudButton>
             </MudPaper>
@@ -44,109 +126,153 @@
     }
     else
     {
-        <!-- Score card (left on desktop) -->
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-4">
                 <FinancialAnalysisPanel Result="vm.AdvisorResult" />
             </MudPaper>
         </MudItem>
 
-        <!-- Recommendations (right on desktop) -->
-        @if (Recommendations.Any())
-        {
-            <MudItem xs="12" md="6">
-                <MudPaper Class="pa-4" Style="background-color: #f2f2f2;">
-                    <MudStack Spacing="2">
-                        <MudText Typo="Typo.h6">Financial Portfolio</MudText>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4"
+            Style="background-color: #f2f2f2;">
+                <MudStack Spacing="2">
 
-                        <MudTable Items="@VisibleRecommendations"
-                                  Dense="true"
-                                  Hover="true"
-                                  Bordered="true"
-                                  Elevation="0"
-                                  Class="grid-with-borders">
+                    <MudText Typo="Typo.h6">
+                        Financial Portfolio
+                    </MudText>
 
-                            <HeaderContent>
-                                <MudTh>Investment Type</MudTh>
-                                <MudTh>Risk Level</MudTh>
-                                <MudTh Style="text-align:right;">Recommendation Level</MudTh>
-                                <MudTh>More Information</MudTh>
-                            </HeaderContent>
+                    <MudTable Items="@VisibleRecommendations"
+                    Dense
+                    Hover
+                    Bordered
+                    Elevation="0">
 
-                            <RowTemplate Context="rec">
-                                <MudTd DataLabel="Investment Type">@rec.Type</MudTd>
-                                <MudTd DataLabel="Risk Level">@rec.Risk</MudTd>
-                                <MudTd DataLabel="Recommendation Level" Style="text-align:right;">@rec.RecDisplay</MudTd>
-                                <MudTd DataLabel="More Information">
-                                    @if (!string.IsNullOrWhiteSpace(rec?.Link))
-                                    {
-                                        <MudLink Href="@rec.Link" Target="_blank" Color="Color.Primary">
-                                            Learn more
-                                        </MudLink>
-                                    }
-                                    else if (!string.IsNullOrWhiteSpace(rec?.Info))
-                                    {
-                                        <MudText Color="Color.Secondary">@rec.Info</MudText>
-                                    }
-                                    else
-                                    {
-                                        <MudText Color="Color.Secondary">—</MudText>
-                                    }
-                                </MudTd>
-                            </RowTemplate>
-                        </MudTable>
+                        <HeaderContent>
+                            <MudTh>Investment Type</MudTh>
+                            <MudTh>Risk Level</MudTh>
+                            <MudTh>Recommendation Level</MudTh>
+                            <MudTh>More Information</MudTh>
+                        </HeaderContent>
 
-                        @* @if (CanShowMore)
-                        { *@
-                            <MudStack Direction="Row" Justify="Justify.FlexEnd">
-                                <MudButton Variant="Variant.Filled"
-                                           Color="Color.Primary"
-                                           OnClick="GenerateMore">
-                                    Generate more
-                                </MudButton>
-                            </MudStack>
-                        @* } *@
-                    </MudStack>
-                </MudPaper>
-            </MudItem>
-        }
+                        <RowTemplate Context="rec">
+                            <MudTd>@rec.Type</MudTd>
+                            <MudTd>@rec.Risk</MudTd>
+                            <MudTd Align="Align.Right">
+                                @rec.RecDisplay
+                            </MudTd>
+                            <MudTd>
+                                @if (!string.IsNullOrWhiteSpace(rec.Link))
+                                {
+                                    <MudLink Href="@rec.Link" Target="_blank">
+                                        Learn more
+                                    </MudLink>
+                                }
+                                else
+                                {
+                                    <MudText Color="Color.Secondary">—</MudText>
+                                }
+                            </MudTd>
+                        </RowTemplate>
+
+                    </MudTable>
+
+                    @if (CanShowMore)
+                    {
+                        <MudStack Direction="Row"
+                        Justify="Justify.FlexEnd">
+                            <MudButton Variant="Variant.Filled"
+                            Color="Color.Primary"
+                            OnClick="GenerateMore">
+                                Show more
+                            </MudButton>
+                        </MudStack>
+                    }
+
+                </MudStack>
+            </MudPaper>
+        </MudItem>
     }
 
     <!-- Quick Actions -->
     <MudItem xs="12">
         <MudPaper Class="pa-4">
-            <MudText Typo="Typo.h6">Quick Actions</MudText>
-            <div class="d-flex mt-2" style="gap:12px;flex-wrap:wrap;">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/financial-survey">
-                    Take Financial Survey Today
-                </MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Href="/financial-resources">
+            <MudText Typo="Typo.h6">
+                Quick Actions
+            </MudText>
+
+            <div class="d-flex mt-2"
+                 style="gap:12px; flex-wrap:wrap;">
+
+                @if (AuthService.IsLoggedIn)
+                {
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Href="/financial-survey">
+                        Take / Retake Survey
+                    </MudButton>
+                }
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           Href="/financial-resources">
                     Financial Resources
                 </MudButton>
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" Href="/help">
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Error"
+                           Href="/help">
                     Help
                 </MudButton>
+
             </div>
         </MudPaper>
     </MudItem>
+
 </MudGrid>
 
-@code {
+@code
+{
     private const int PageSize = 4;
 
-    private List<Recommendation> Recommendations { get; set; } = new();
+    private bool _isLoading = true;
+    private List<Recommendation> Recommendations = new();
     private int _visibleCount = PageSize;
 
-    private List<Recommendation> VisibleRecommendations =>
-        Recommendations.Take(_visibleCount).ToList();
+    private IEnumerable<Recommendation> VisibleRecommendations =>
+        Recommendations.Take(_visibleCount);
 
     private bool CanShowMore =>
         Recommendations.Count > _visibleCount;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         vm.StateChanged += VmOnStateChanged;
+        AuthService.OnStateChanged += AuthOnStateChanged;
+
+        if (AuthService.IsLoggedIn)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        await vm.LoadUserResultAsync();
         RefreshRecommendations();
+
+        _isLoading = false;
+        StateHasChanged();
+    }
+
+    private async void AuthOnStateChanged()
+    {
+        if (AuthService.IsLoggedIn)
+            await LoadAsync();
+        else
+            ResetPage();
+
+        InvokeAsync(StateHasChanged);
     }
 
     private void VmOnStateChanged()
@@ -157,18 +283,46 @@
 
     private void RefreshRecommendations()
     {
-        Recommendations = vm.AdvisorResult is { } res
-            ? Catalog.For(res).ToList()
-            : new List<Recommendation>();
+        Recommendations = vm.AdvisorResult is { } r
+            ? Catalog.For(r).ToList()
+            : new();
 
-        // Reset paging each time recommendations refresh
         _visibleCount = PageSize;
     }
 
     private void GenerateMore()
     {
-        _visibleCount = Math.Min(_visibleCount + PageSize, Recommendations.Count);
+        _visibleCount = Math.Min(
+            _visibleCount + PageSize,
+            Recommendations.Count
+        );
     }
 
-    public void Dispose() => vm.StateChanged -= VmOnStateChanged;
+    private async Task ShowLoginDialog()
+    {
+        var dialog = await DialogService.ShowAsync<LogInDialog>();
+
+        if (!(await dialog.Result).Canceled)
+            Nav.NavigateTo("/");
+    }
+
+    private async Task LogoutAsync()
+    {
+        await AuthService.LogoutAsync();
+        ResetPage();
+        Nav.NavigateTo("/");
+    }
+
+    private void ResetPage()
+    {
+        _isLoading = true;
+        Recommendations.Clear();
+        vm.Reset();
+    }
+
+    public void Dispose()
+    {
+        vm.StateChanged -= VmOnStateChanged;
+        AuthService.OnStateChanged -= AuthOnStateChanged;
+    }
 }
